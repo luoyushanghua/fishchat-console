@@ -1,0 +1,33 @@
+# 运行时数据（含令牌、记忆库、用户数据）
+data/
+logs/
+*.db
+*.db-wal
+*.db-shm
+
+# 配置中可能含密钥
+botconfig.json
+ttsconfig.json
+config.json
+official.json
+autostart.json
+
+# 模型文件
+*.gguf
+*.bin
+*.safetensors
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# 编辑器
+.vscode/
+.idea/
+*.swp
+
+# 系统
+Thumbs.db
+desktop.ini

@@ -1,0 +1,2341 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>大肥鱼控制中心</title>
+<style>
+:root{
+  --bg:#070c16; --panel:rgba(17,25,41,.78); --panel2:rgba(23,33,53,.6);
+  --line:rgba(110,155,225,.14); --line2:rgba(110,155,225,.28);
+  --ink:#e9effb; --muted:#7c8db1; --dim:#54648a;
+  --cyan:#3fc9f0; --violet:#8b7cf6; --mint:#3ddba0; --amber:#f0b45e; --rose:#f2708f;
+  --mono:"JetBrains Mono","Cascadia Mono",Consolas,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  font-family:"Microsoft YaHei","PingFang SC",system-ui,sans-serif;
+  background:var(--bg); color:var(--ink); min-height:100vh; padding:20px 22px 40px;
+  background-image:
+    radial-gradient(900px 500px at 12% -8%, rgba(63,201,240,.10), transparent 60%),
+    radial-gradient(800px 460px at 92% 4%, rgba(139,124,246,.10), transparent 60%),
+    radial-gradient(700px 400px at 50% 108%, rgba(61,219,160,.06), transparent 60%);
+  background-attachment:fixed;
+}
+.wrap{max-width:1320px;margin:0 auto}
+
+/* ── 顶栏 ── */
+.top{display:flex;align-items:center;gap:14px;margin-bottom:18px;flex-wrap:wrap}
+.logo{width:44px;height:44px;border-radius:13px;object-fit:cover;object-position:50% 24%;
+  border:1px solid var(--line2);box-shadow:0 0 22px rgba(63,201,240,.22)}
+.brand h1{font-size:16px;font-weight:700;letter-spacing:.6px}
+.brand p{font-size:11px;color:var(--dim);margin-top:2px;font-family:var(--mono)}
+.spacer{flex:1}
+.pill{font-size:11.5px;padding:6px 13px;border-radius:20px;font-family:var(--mono);
+  border:1px solid var(--line2);color:var(--muted);background:rgba(30,45,70,.4)}
+.pill.ok{color:var(--mint);border-color:rgba(61,219,160,.35);
+  background:rgba(61,219,160,.08);box-shadow:0 0 16px rgba(61,219,160,.12)}
+.pill.bad{color:var(--rose);border-color:rgba(242,112,143,.35);background:rgba(242,112,143,.08)}
+.pill b{color:inherit}
+
+/* ── 指标卡 ── */
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:13px;margin-bottom:16px}
+@media(max-width:1000px){.metrics{grid-template-columns:repeat(2,1fr)}}
+.m{background:var(--panel);border:1px solid var(--line);border-radius:16px;
+  padding:13px 15px 9px;position:relative;overflow:hidden}
+.m::before{content:"";position:absolute;inset:0 0 auto 0;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(63,201,240,.5),transparent)}
+.m .lab{font-size:10.5px;color:var(--dim);letter-spacing:1.4px;text-transform:uppercase;
+  font-family:var(--mono)}
+.m .val{font-size:25px;font-weight:700;font-family:var(--mono);letter-spacing:-.5px;
+  margin:5px 0 1px;line-height:1.1}
+.m .val small{font-size:12px;color:var(--muted);font-weight:400;margin-left:3px}
+.m .sub{font-size:10.5px;color:var(--muted);font-family:var(--mono)}
+.m canvas{width:100%;height:26px;display:block;margin-top:6px;opacity:.9}
+.c-cyan{color:var(--cyan)} .c-violet{color:var(--violet)} .c-mint{color:var(--mint)}
+.c-amber{color:var(--amber)} .c-rose{color:var(--rose)}
+
+/* ── 布局 ── */
+.grid{display:grid;grid-template-columns:330px 1fr;gap:16px;align-items:start}
+@media(max-width:1050px){.grid{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:15px 16px}
+.card+.card{margin-top:15px}
+.card h2{font-size:10.5px;color:var(--dim);font-weight:700;letter-spacing:1.8px;
+  text-transform:uppercase;font-family:var(--mono);margin-bottom:13px;
+  display:flex;align-items:center;gap:8px}
+.card h2::after{content:"";flex:1;height:1px;background:var(--line)}
+
+/* 桌宠 */
+.pet{display:flex;flex-direction:column;align-items:center;padding:4px 0 10px;position:relative}
+.pet video{height:180px;filter:drop-shadow(0 12px 26px rgba(63,201,240,.20))}
+.pet .now{font-size:12px;color:var(--muted);margin-top:2px;font-family:var(--mono);
+  text-align:center;word-break:break-all}
+.pet .now b{color:var(--cyan)}
+
+/* 按钮 */
+.btn{border:1px solid var(--line2);border-radius:10px;padding:9px 16px;font-size:12.5px;
+  cursor:pointer;font-family:inherit;background:transparent;color:var(--ink);
+  transition:.18s;font-weight:600}
+.btn:hover{background:rgba(63,201,240,.10);border-color:rgba(63,201,240,.5)}
+.btn.p{background:linear-gradient(135deg,rgba(63,201,240,.20),rgba(139,124,246,.20));
+  border-color:rgba(63,201,240,.45);color:#bfe9ff}
+.btn.p:hover{box-shadow:0 0 20px rgba(63,201,240,.28)}
+.btn.d{border-color:rgba(242,112,143,.35);color:#ffb3c4}
+.btn.d:hover{background:rgba(242,112,143,.12)}
+.btn:disabled{opacity:.35;cursor:not-allowed}
+.acts{display:flex;gap:9px;justify-content:center;flex-wrap:wrap}
+
+/* 状态表 */
+.kv{display:grid;grid-template-columns:auto 1fr;gap:6px 12px;font-size:12px}
+.kv dt{color:var(--dim);font-family:var(--mono);font-size:11px}
+.kv dd{text-align:right;font-family:var(--mono);color:var(--ink);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kv dd.g{color:var(--mint)} .kv dd.y{color:var(--amber)} .kv dd.d{color:var(--dim)}
+
+/* 进度条 */
+.g{margin-bottom:12px}
+.g:last-child{margin-bottom:0}
+.g .r{display:flex;justify-content:space-between;font-size:11.5px;margin-bottom:5px;
+  font-family:var(--mono)}
+.g .r span:first-child{color:var(--muted)} .g .r span:last-child{color:var(--ink)}
+.bar{height:6px;border-radius:6px;background:rgba(120,160,220,.12);overflow:hidden}
+.bar i{display:block;height:100%;border-radius:6px;transition:width .45s ease}
+.i-cyan{background:linear-gradient(90deg,#2aa8d0,#5fe0ff)}
+.i-violet{background:linear-gradient(90deg,#6c5ce7,#a99bff)}
+.i-mint{background:linear-gradient(90deg,#25a97b,#5ff0b8)}
+.i-amber{background:linear-gradient(90deg,#d09234,#ffcf85)}
+.i-rose{background:linear-gradient(90deg,#d0506e,#ff92ac)}
+
+/* 表单 */
+.f{margin-bottom:14px}
+.f:last-child{margin-bottom:0}
+.f .lb{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px}
+.f .lb span{font-size:12px;color:var(--muted)}
+.f .lb b{font-family:var(--mono);font-size:13px;color:var(--cyan);font-weight:600}
+.f .tip{font-size:10.5px;color:var(--dim);margin-top:5px;line-height:1.55}
+input[type=range]{width:100%;-webkit-appearance:none;height:4px;border-radius:4px;
+  background:linear-gradient(90deg,rgba(63,201,240,.45),rgba(120,160,220,.15));outline:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;height:15px;
+  border-radius:50%;background:#0d1524;border:2px solid var(--cyan);cursor:pointer;
+  box-shadow:0 0 10px rgba(63,201,240,.6)}
+input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;
+  background:#0d1524;border:2px solid var(--cyan);cursor:pointer}
+select,textarea,input[type=text]{
+  width:100%;padding:9px 11px;border-radius:9px;border:1px solid var(--line);
+  background:rgba(10,16,28,.75);font-family:var(--mono);font-size:12px;
+  color:var(--ink);outline:none;transition:.18s}
+select:focus,textarea:focus,input[type=text]:focus{border-color:var(--cyan);
+  box-shadow:0 0 0 3px rgba(63,201,240,.10)}
+textarea{resize:vertical;line-height:1.6;min-height:112px;font-family:inherit;font-size:12px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:600px){.two{grid-template-columns:1fr}}
+
+/* 模型表 */
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{text-align:left;padding:7px 9px;color:var(--dim);font-weight:600;font-size:10.5px;
+  letter-spacing:1.2px;text-transform:uppercase;font-family:var(--mono);
+  border-bottom:1px solid var(--line2)}
+td{padding:9px;border-bottom:1px solid rgba(110,155,225,.07);font-family:var(--mono)}
+tr:last-child td{border-bottom:none}
+td.nm{font-family:inherit;font-weight:600;color:var(--ink)}
+.tag{display:inline-block;padding:2px 7px;border-radius:5px;font-size:10px;
+  border:1px solid;font-family:var(--mono)}
+.tag.on{color:var(--mint);border-color:rgba(61,219,160,.4);background:rgba(61,219,160,.1)}
+.tag.off{color:var(--dim);border-color:rgba(110,155,225,.2)}
+
+/* 提示 */
+.toast{position:fixed;right:24px;bottom:24px;background:rgba(20,32,52,.96);
+  border:1px solid var(--line2);color:var(--ink);padding:11px 18px;border-radius:12px;
+  font-size:12.5px;opacity:0;transform:translateY(10px);transition:.25s;
+  pointer-events:none;z-index:99;box-shadow:0 10px 30px rgba(0,0,0,.5)}
+.toast.show{opacity:1;transform:none}
+
+/* ── 大肥鱼装饰层 ── */
+/* 背景水波 */
+body::before{
+  content:"";position:fixed;left:0;right:0;bottom:0;height:42vh;z-index:0;pointer-events:none;
+  background:radial-gradient(ellipse at 50% 120%, rgba(63,201,240,.16), transparent 62%),
+             radial-gradient(ellipse at 20% 130%, rgba(139,124,246,.12), transparent 55%),
+             radial-gradient(ellipse at 80% 135%, rgba(61,219,160,.10), transparent 55%);
+}
+/* 淡影：鲸鱼娘本人（由 JS 随机浮现） */
+.wm{
+  position:fixed;right:-70px;bottom:1vh;width:min(46vw,560px);height:min(46vw,560px);
+  z-index:0;pointer-events:none;opacity:0;
+  background:url('pet/char.png') center/contain no-repeat;
+  transform:rotate(-7deg);
+  will-change:opacity;
+}
+/* 游动的小鲸鱼娘 */
+.swimfish{
+  position:fixed;z-index:0;pointer-events:none;opacity:0;
+  animation:swimAcross 38s linear infinite;
+  will-change:opacity;
+}
+.swimfish img{
+  height:64px;width:auto;display:block;
+  filter:drop-shadow(0 0 14px rgba(63,201,240,.45));
+}
+@keyframes swimAcross{
+  0%{left:-10vw;top:72vh;transform:scaleX(1) rotate(-5deg)}
+  48%{top:38vh;transform:scaleX(1) rotate(3deg)}
+  50%{transform:scaleX(-1) rotate(3deg)}
+  98%{top:68vh;transform:scaleX(-1) rotate(-3deg)}
+  100%{left:106vw;top:70vh;transform:scaleX(-1) rotate(-3deg)}
+}
+/* 标题上的徽章：鲸鱼娘头像 */
+.fishbadge{
+  display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;
+  border-radius:9px;overflow:hidden;margin-right:9px;vertical-align:middle;
+  border:1px solid rgba(63,201,240,.45);
+  box-shadow:0 0 14px rgba(63,201,240,.3);background:#0d1524;
+}
+.fishbadge img{width:100%;height:100%;object-fit:cover;object-position:50% 22%}
+/* 卡片标题前的小鱼（已去掉 emoji，保持干净） */
+/* 顶部品牌加一点渐变字 */
+.brand h1{
+  background:linear-gradient(92deg,#cfe6ff,#7fd4ff 45%,#b8a8ff);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+}
+/* 卡片 hover 轻微上浮 */
+.card{transition:transform .25s ease, box-shadow .25s ease}
+.card:hover{transform:translateY(-2px);box-shadow:0 12px 32px rgba(63,201,240,.10)}
+/* 按钮加鱼尾光 */
+.btn.p{position:relative;overflow:hidden}
+.btn.p::after{
+  content:"";position:absolute;inset:0;background:linear-gradient(120deg,transparent 30%,rgba(255,255,255,.18) 50%,transparent 70%);
+  transform:translateX(-100%);transition:transform .6s;
+}
+.btn.p:hover::after{transform:translateX(100%)}
+
+/* 顶部标签页 */
+.tabs{display:flex;gap:6px;margin-bottom:14px;align-items:center;flex-wrap:wrap}
+
+/* ── 分页导航 ── */
+.page{display:none}
+.page.on{display:block}
+.pgrid{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
+@media(max-width:1050px){.pgrid{grid-template-columns:1fr}}
+.pgrid > .metrics{grid-column:1/-1;margin-bottom:0}
+.pgrid > .card{margin-top:0}
+/* 页内目录 */
+.toc{
+  display:flex;flex-wrap:wrap;gap:7px;margin-bottom:14px;padding:10px 12px;
+  background:rgba(12,20,34,.55);border:1px solid var(--line);border-radius:14px;
+}
+.toc a{
+  font-size:11.5px;color:var(--muted);text-decoration:none;padding:5px 11px;border-radius:8px;
+  border:1px solid transparent;transition:.15s;font-family:var(--mono);
+}
+.toc a:hover{color:#bfe9ff;border-color:rgba(63,201,240,.4);background:rgba(63,201,240,.1)}
+.toc .lbl{font-size:10px;color:var(--dim);letter-spacing:1.5px;align-self:center;
+  font-family:var(--mono);margin-right:4px}
+/* 卡片锚点高亮 */
+.card.flash{box-shadow:0 0 0 2px rgba(63,201,240,.5), 0 0 24px rgba(63,201,240,.25)}
+/* 左右切换提示 */
+.tabnav{display:flex;gap:6px;margin-left:auto}
+.tabnav button{
+  border:1px solid var(--line);background:transparent;color:var(--muted);border-radius:8px;
+  width:26px;height:24px;font-size:12px;cursor:pointer;font-family:inherit;transition:.15s;
+}
+.tabnav button:hover{color:#bfe9ff;border-color:rgba(63,201,240,.45);background:rgba(63,201,240,.1)}
+.tab{padding:8px 18px;border-radius:11px;font-size:12.5px;font-weight:600;cursor:pointer;
+  border:1px solid var(--line);color:var(--muted);background:rgba(20,30,48,.5);
+  transition:.18s;display:flex;align-items:center;gap:7px;font-family:inherit}
+.tab:hover{color:var(--ink);border-color:var(--line2)}
+.tab.on{color:#bfe9ff;border-color:rgba(63,201,240,.55);
+  background:linear-gradient(135deg,rgba(63,201,240,.18),rgba(139,124,246,.14));
+  box-shadow:0 0 18px rgba(63,201,240,.16)}
+.tab .dot2{width:6px;height:6px;border-radius:50%;background:var(--dim)}
+.tab .dot2.ok{background:var(--mint);box-shadow:0 0 8px rgba(61,219,160,.9)}
+.tab .dot2.bad{background:var(--rose)}
+
+/* NapCat 面板 */
+.napwrap{display:flex;flex-direction:column;gap:12px}
+.napbar{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.napbar .info{font-family:var(--mono);font-size:11px;color:var(--muted);
+  padding:6px 12px;border:1px solid var(--line);border-radius:9px;background:rgba(10,16,28,.6)}
+.napbar .info b{color:var(--mint)}
+.napbar .info b.bad{color:var(--rose)}
+.napframe{width:100%;height:calc(100vh - 260px);min-height:520px;border:1px solid var(--line);
+  border-radius:16px;background:#fff;box-shadow:0 10px 30px rgba(0,0,0,.35)}
+.napmask{display:none;flex-direction:column;align-items:center;justify-content:center;gap:12px;
+  height:calc(100vh - 260px);min-height:520px;border:1px dashed var(--line2);border-radius:16px;
+  color:var(--muted);font-size:13px;text-align:center;line-height:1.9;
+  background:rgba(10,16,28,.4)}
+.napmask.show{display:flex}
+.napmask b{color:var(--amber)}
+.napmask code{font-family:var(--mono);font-size:11.5px;color:var(--cyan);
+  background:rgba(63,201,240,.08);padding:2px 8px;border-radius:5px}
+.napsteps{font-size:12.5px;opacity:.85;line-height:2;text-align:left}
+.napbtns{display:flex;gap:9px;flex-wrap:wrap;justify-content:center;margin-top:4px}
+
+/* NapCat 子标签 */
+.subtabs{display:flex;gap:6px;margin-bottom:12px}
+.stab{padding:6px 16px;border-radius:9px;font-size:12px;cursor:pointer;font-family:inherit;
+  border:1px solid var(--line);background:transparent;color:var(--muted);transition:.15s}
+.stab:hover{color:var(--ink)}
+.stab.on{color:#bfe9ff;border-color:rgba(63,201,240,.5);background:rgba(63,201,240,.12)}
+
+/* 回复范围 */
+.scope{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:900px){.scope{grid-template-columns:1fr}}
+.scopecard{background:rgba(10,16,28,.45);border:1px solid var(--line);border-radius:14px;padding:14px}
+.scopecard h3{font-size:12.5px;color:var(--ink);margin-bottom:5px;font-weight:700}
+.scopecard .desc{font-size:10.5px;color:var(--dim);margin-bottom:10px;line-height:1.65}
+.chips{display:flex;flex-wrap:wrap;gap:7px;min-height:34px;margin-bottom:10px}
+.chip{display:inline-flex;align-items:center;gap:7px;padding:5px 10px;border-radius:8px;
+  font-family:var(--mono);font-size:11.5px;background:rgba(63,201,240,.12);
+  border:1px solid rgba(63,201,240,.35);color:#bfe9ff}
+.chip.d{background:rgba(242,112,143,.1);border-color:rgba(242,112,143,.35);color:#ffb3c4}
+.chip b{cursor:pointer;opacity:.65;font-weight:400;font-size:11px}
+.chip b:hover{opacity:1;color:#fff}
+.chips .empty{font-size:11px;color:var(--dim);font-family:var(--mono);line-height:34px}
+.addrow{display:flex;gap:7px}
+.addrow input{flex:1}
+.addrow .btn{flex:0 0 auto;padding:8px 14px}
+
+/* 卡片标题行 + 小按钮 */
+.cardhead{display:flex;align-items:center;gap:10px;margin-bottom:13px}
+.cardhead h2{margin-bottom:0;flex:1}
+.mini-btn{border:1px solid rgba(63,201,240,.45);background:rgba(63,201,240,.10);
+  color:#bfe9ff;border-radius:9px;padding:5px 12px;font-size:11.5px;cursor:pointer;
+  font-family:inherit;font-weight:600;transition:.15s;white-space:nowrap}
+.mini-btn:hover{background:rgba(63,201,240,.22)}
+.mini-btn.d{border-color:rgba(242,112,143,.4);color:#ffb3c4;background:rgba(242,112,143,.08)}
+.mini-btn.d:hover{background:rgba(242,112,143,.18)}
+
+/* 弹窗 */
+.modal{position:fixed;inset:0;background:rgba(4,8,16,.74);backdrop-filter:blur(4px);
+  display:none;align-items:center;justify-content:center;z-index:200;padding:20px}
+.modal.show{display:flex}
+.modalbox{width:min(580px,100%);background:#0e1626;border:1px solid var(--line2);
+  border-radius:18px;padding:20px;box-shadow:0 24px 70px rgba(0,0,0,.7)}
+.modalhead{display:flex;align-items:center;justify-content:space-between;
+  font-size:14px;font-weight:700;margin-bottom:14px}
+.modalhead span{cursor:pointer;color:var(--muted);font-size:17px;line-height:1}
+.modalhead span:hover{color:var(--rose)}
+.modaltabs{display:flex;gap:6px;margin-bottom:15px}
+.mtab{flex:1;padding:8px;border-radius:9px;border:1px solid var(--line);background:transparent;
+  color:var(--muted);font-size:12px;cursor:pointer;font-family:inherit;transition:.15s}
+.mtab.on{color:#bfe9ff;border-color:rgba(63,201,240,.5);background:rgba(63,201,240,.12)}
+.implog{font-family:var(--mono);font-size:10.5px;color:var(--muted);background:rgba(0,0,0,.4);
+  border:1px solid var(--line);border-radius:9px;padding:10px;max-height:150px;overflow:auto;
+  white-space:pre-wrap;margin-top:12px;line-height:1.55}
+details.card{margin-top:15px}
+details summary{cursor:pointer;font-size:10.5px;color:var(--dim);font-weight:700;
+  letter-spacing:1.8px;text-transform:uppercase;font-family:var(--mono);
+  list-style:none;user-select:none}
+details summary::-webkit-details-marker{display:none}
+details summary:hover{color:var(--cyan)}
+details[open] summary{margin-bottom:12px}
+.log{max-height:200px;overflow-y:auto;font-size:12.5px;line-height:1.65;
+  background:rgba(8,13,23,.6);border:1px solid var(--line);border-radius:11px;
+  padding:12px;margin-bottom:10px;display:flex;flex-direction:column;gap:8px}
+.log:empty::after{content:"试试一句话，验证当前参数效果…";color:var(--dim);font-size:11.5px}
+.log .u{align-self:flex-end;background:rgba(63,201,240,.14);color:#bfe9ff;
+  padding:6px 12px;border-radius:12px 12px 3px 12px;max-width:78%}
+.log .a{align-self:flex-start;background:rgba(255,255,255,.045);padding:6px 12px;
+  border-radius:12px 12px 12px 3px;max-width:84%;color:var(--ink)}
+.log .m{font-size:10.5px;color:var(--dim);align-self:center;font-family:var(--mono)}
+.row-in{display:flex;gap:9px}
+.num{font-variant-numeric:tabular-nums}
+
+/* 自检列表 */
+.chklist{display:flex;flex-direction:column;max-height:360px;overflow-y:auto}
+.chk{display:grid;grid-template-columns:9px 1fr auto;gap:9px;align-items:start;
+  padding:7px 3px;border-bottom:1px solid rgba(110,155,225,.07)}
+.chk:last-child{border-bottom:none}
+.dot{width:7px;height:7px;border-radius:50%;margin-top:4px}
+.dot.ok{background:var(--mint);box-shadow:0 0 9px rgba(61,219,160,.8)}
+.dot.warn{background:var(--amber);box-shadow:0 0 8px var(--amber)}
+.dot.bad{background:var(--rose);box-shadow:0 0 9px rgba(242,112,143,.8)}
+.chk .nm{font-size:11.5px;color:var(--ink)}
+.chk .vl{font-family:var(--mono);font-size:10.5px;color:var(--muted);text-align:right;
+  max-width:190px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chk .dt{grid-column:2/-1;font-family:var(--mono);font-size:10px;color:var(--dim);
+  margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.badge{font-family:var(--mono);font-size:10px;padding:2px 8px;border-radius:5px;
+  border:1px solid;margin-left:auto;letter-spacing:.5px}
+.badge.g{color:var(--mint);border-color:rgba(61,219,160,.4);background:rgba(61,219,160,.1)}
+.badge.r{color:var(--rose);border-color:rgba(242,112,143,.4);background:rgba(242,112,143,.1)}
+</style>
+</head>
+<body>
+<div class="wm" id="wm"></div>
+<div class="swimfish" id="fish1"><img src="pet/char.png" alt=""></div>
+<div class="swimfish" id="fish2" style="animation-delay:-19s;animation-duration:52s"><img src="pet/char.png" alt="" style="height:44px"></div>
+<div class="wrap">
+
+  <div class="top">
+    <img class="logo" src="pet/char.png" alt="">
+    <div class="brand">
+      <h1><span class="fishbadge"><img src="pet/char.png" alt=""></span>大肥鱼控制中心</h1>
+      <p id="hostline">LOCAL INFERENCE CONTROL PANEL</p>
+    </div>
+    <div class="spacer"></div>
+    <div class="pill" id="pillOllama">OLLAMA —</div>
+    <div class="pill ok" id="pillSys">SYS —</div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab on" id="tabDash">📊 监控台</button>
+    <button class="tab" id="tabNap">🐋 NapCat<span class="dot2" id="napDot"></span></button>
+  </div>
+
+  <div id="viewDash">
+
+  <!-- 指标 -->
+  <div class="metrics">
+    <div class="m">
+      <div class="lab">VRAM</div>
+      <div class="val c-cyan" id="mVram">--<small>MB</small></div>
+      <div class="sub" id="mVramSub">-- / -- MB</div>
+      <canvas id="spVram"></canvas>
+    </div>
+    <div class="m">
+      <div class="lab">MEMORY</div>
+      <div class="val c-mint" id="mRam">--<small>GB</small></div>
+      <div class="sub" id="mRamSub">-- / -- GB</div>
+      <canvas id="spRam"></canvas>
+    </div>
+    <div class="m">
+      <div class="lab" id="mGpuLab">GPU LOAD</div>
+      <div class="val c-violet" id="mGpu">--<small>%</small></div>
+      <div class="sub" id="mGpuSub">-- °C · -- W</div>
+      <canvas id="spGpu"></canvas>
+    </div>
+    <div class="m">
+      <div class="lab">THROUGHPUT</div>
+      <div class="val c-amber" id="mTps">--<small>tok/s</small></div>
+      <div class="sub" id="mTpsSub">最近一次生成</div>
+      <canvas id="spTps"></canvas>
+    </div>
+  </div>
+
+  <div class="grid">
+    <!-- 左栏 -->
+    <div>
+      <div class="card">
+        <div class="pet">
+          <video id="pet" autoplay loop muted playsinline src="pet/idle.webm"></video>
+          <div class="now">当前模型 <b id="curModel">—</b></div>
+        </div>
+        <div class="acts">
+          <button class="btn p" id="btnLoad">加载到显存</button>
+          <button class="btn d" id="btnUnload">卸载</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Runtime</h2>
+        <dl class="kv">
+          <dt>状态</dt><dd id="rState">未加载</dd>
+          <dt>上下文</dt><dd id="rCtx">—</dd>
+          <dt>GPU 设备</dt><dd id="rDev">—</dd>
+          <dt>CPU/GPU</dt><dd id="rProc">—</dd>
+          <dt>显存占用</dt><dd id="rVram">—</dd>
+          <dt>到期</dt><dd id="rExp">—</dd>
+          <dt>模型库</dt><dd id="rStore">—</dd>
+        </dl>
+      </div>
+
+      <div class="card">
+        <h2>Hardware</h2>
+        <div class="g">
+          <div class="r"><span>VRAM</span><span id="hVramTxt">—</span></div>
+          <div class="bar"><i class="i-cyan" id="hVramBar" style="width:0%"></i></div>
+        </div>
+        <div class="g">
+          <div class="r"><span>RAM</span><span id="hRamTxt">—</span></div>
+          <div class="bar"><i class="i-mint" id="hRamBar" style="width:0%"></i></div>
+        </div>
+        <div class="g">
+          <div class="r"><span id="hGpuLabel">GPU UTIL</span><span id="hGpuTxt">—</span></div>
+          <div class="bar"><i class="i-violet" id="hGpuBar" style="width:0%"></i></div>
+        </div>
+        <div id="diskRows"></div>
+      </div>
+    </div>
+
+    <!-- 右栏 -->
+    <div>
+      <div class="card">
+        <div class="cardhead">
+          <h2>Model</h2>
+          <button class="mini-btn" id="btnImport">＋ 导入模型</button>
+          <button class="mini-btn d" id="btnDelModel">删除</button>
+        </div>
+        <div class="f">
+          <div class="lb"><span>选择模型</span><b id="mSelInfo" style="color:var(--muted)"></b></div>
+          <select id="modelSel"></select>
+          <div class="tip">切换后点「加载到显存」生效。MoE 模型激活参数少，速度通常快 2–3 倍。</div>
+        </div>
+        <table>
+          <thead><tr><th>模型</th><th>参数</th><th>量化</th><th>体积</th><th>显存</th><th>状态</th></tr></thead>
+          <tbody id="modelTable"><tr><td colspan="6" style="color:var(--dim)">读取中…</td></tr></tbody>
+        </table>
+      </div>
+
+      <div class="card">
+        <h2>Context &amp; Output</h2>
+        <div class="two">
+          <div class="f">
+            <div class="lb"><span>num_ctx 上下文</span><b id="vCtx"></b></div>
+            <input type="range" id="ctx" min="1024" max="16384" step="512">
+            <div class="tip">8GB 显存下 4096 通常最快；超过 8192 会溢出到内存。</div>
+          </div>
+          <div class="f">
+            <div class="lb"><span>num_predict 最大输出</span><b id="vPred"></b></div>
+            <input type="range" id="predict" min="64" max="2048" step="32">
+            <div class="tip">限制单次生成长度，影响耗时与显存峰值。</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Sampling</h2>
+        <div class="two">
+          <div class="f">
+            <div class="lb"><span>temperature</span><b id="vTemp"></b></div>
+            <input type="range" id="temp" min="0" max="2" step="0.05">
+            <div class="tip">低=稳定严谨，高=活泼有创意。角色扮演推荐 0.8–1.0。</div>
+          </div>
+          <div class="f">
+            <div class="lb"><span>top_p</span><b id="vTopP"></b></div>
+            <input type="range" id="topp" min="0.1" max="1" step="0.01">
+            <div class="tip">核采样阈值，0.9 左右较自然。</div>
+          </div>
+          <div class="f">
+            <div class="lb"><span>top_k</span><b id="vTopK"></b></div>
+            <input type="range" id="topk" min="1" max="100" step="1">
+            <div class="tip">候选词数量，越小越保守。</div>
+          </div>
+          <div class="f">
+            <div class="lb"><span>repeat_penalty</span><b id="vRep"></b></div>
+            <input type="range" id="rep" min="1" max="1.5" step="0.01">
+            <div class="tip">抑制重复，1.05–1.15 较合适。</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Performance</h2>
+        <div class="two">
+          <div class="f">
+            <div class="lb"><span>num_gpu 层数</span><b id="vGpu"></b></div>
+            <input type="range" id="numgpu" min="-1" max="64" step="1">
+            <div class="tip">-1 = 自动分配。显存吃紧可手动降低。</div>
+          </div>
+          <div class="f">
+            <div class="lb"><span>keep_alive 驻留</span><b id="vKeep"></b></div>
+            <select id="keep">
+              <option value="5m">5 分钟</option>
+              <option value="30m">30 分钟</option>
+              <option value="2h">2 小时</option>
+              <option value="-1">永久驻留</option>
+            </select>
+            <div class="tip">卸载前的空闲保持时间。</div>
+          </div>
+          <div class="f">
+            <div class="lb"><span>think 思考模式</span><b id="vThink"></b></div>
+            <select id="think">
+              <option value="0">关闭 — 快</option>
+              <option value="1">开启 — 慢</option>
+            </select>
+            <div class="tip">开启后单次回复可能慢 50–70 倍，聊天场景务必关闭。</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="cardhead">
+          <h2>机器人预设 · Bot</h2>
+          <button class="mini-btn" id="btnBotSave">存为预设</button>
+        </div>
+        <div class="f">
+          <div class="lb"><span>预设</span><b id="botInfo" style="color:var(--muted)"></b></div>
+          <div class="row-in">
+            <select id="botSel"></select>
+            <button class="btn" id="btnBotLoad">载入</button>
+            <button class="btn p" id="btnBotApply">应用到机器人</button>
+            <button class="btn d" id="btnBotDel">删除</button>
+          </div>
+          <div class="tip">「应用到机器人」写入 botconfig.json，重启 bot.bat 后生效。</div>
+        </div>
+        <div class="two">
+          <div class="f">
+            <div class="lb"><span>群聊需 @</span></div>
+            <select id="botGroupAt"><option value="1">是（推荐）</option><option value="0">否（每条都回）</option></select>
+          </div>
+          <div class="f">
+            <div class="lb"><span>私聊</span></div>
+            <select id="botPrivate"><option value="1">启用</option><option value="0">关闭</option></select>
+          </div>
+          <div class="f">
+            <div class="lb"><span>唤醒词（逗号分隔）</span></div>
+            <input type="text" id="botWake" placeholder="大肥鱼,肥鱼">
+          </div>
+          <div class="f">
+            <div class="lb"><span>每人最小间隔（秒）</span></div>
+            <input type="text" id="botGap" placeholder="3">
+          </div>
+          <div class="f">
+            <div class="lb"><span>单条回复上限（字）</span></div>
+            <input type="text" id="botMaxChars" placeholder="300">
+          </div>
+          <div class="f">
+            <div class="lb"><span>机器人模型</span></div>
+            <select id="botModel"><option value="">跟随控制台</option></select>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="cardhead">
+          <h2>System Prompt · 人设</h2>
+          <button class="mini-btn" id="btnPersonaSave">存为预设</button>
+        </div>
+        <div class="f">
+          <div class="lb"><span>人设预设</span><b id="personaInfo" style="color:var(--muted)"></b></div>
+          <div class="row-in">
+            <select id="personaSel"></select>
+            <button class="btn" id="btnPersonaLoad">载入</button>
+            <button class="btn d" id="btnPersonaDel">删除</button>
+          </div>
+        </div>
+        <textarea id="sysPrompt" spellcheck="false"></textarea>
+        <div class="acts" style="justify-content:flex-start;margin-top:12px">
+          <button class="btn p" id="btnSave">保存并应用</button>
+          <button class="btn" id="btnReset">恢复默认</button>
+          <span id="saveMsg" style="font-size:11.5px;color:var(--mint);align-self:center"></span>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>自检 · Self-Check <span class="badge" id="chkBadge">—</span></h2>
+        <div class="chklist" id="chkList">
+          <div style="color:var(--dim);font-size:11.5px;padding:6px 2px">正在自检…</div>
+        </div>
+        <div class="acts" style="justify-content:flex-start;margin-top:12px">
+          <button class="btn" id="btnRecheck">重新自检</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="cardhead">
+          <h2>记忆与缓存 · Memory</h2>
+          <button class="mini-btn" id="btnMemRefresh">刷新</button>
+        </div>
+        <dl class="kv">
+          <dt>记忆条数</dt><dd id="memRows">—</dd>
+          <dt>会话数</dt><dd id="memKeys">—</dd>
+          <dt>库大小</dt><dd id="memSize">—</dd>
+          <dt>日志大小</dt><dd id="memLog">—</dd>
+        </dl>
+        <div class="two" style="margin-top:14px">
+          <div class="f">
+            <div class="lb"><span>保留天数</span><b id="vTtl"></b></div>
+            <input type="range" id="memTtl" min="1" max="30" step="1">
+          </div>
+          <div class="f">
+            <div class="lb"><span>每会话保留轮数</span><b id="vTurns"></b></div>
+            <input type="range" id="memTurns" min="2" max="20" step="1">
+          </div>
+          <div class="f">
+            <div class="lb"><span>自动清理间隔（分钟）</span><b id="vInterval"></b></div>
+            <input type="range" id="memInterval" min="5" max="120" step="5">
+          </div>
+          <div class="f">
+            <div class="lb"><span>日志轮转阈值（MB）</span><b id="vLogMb"></b></div>
+            <input type="range" id="memLogMb" min="1" max="20" step="1">
+          </div>
+        </div>
+        <div class="acts" style="justify-content:flex-start;margin-top:4px">
+          <button class="btn p" id="btnMemClean">立即清理</button>
+          <button class="btn" id="btnMemSaveCfg">保存设置</button>
+          <button class="btn d" id="btnMemClear">清空全部记忆</button>
+        </div>
+        <div style="margin-top:14px">
+          <div style="font-size:10.5px;color:var(--dim);letter-spacing:1.2px;font-family:var(--mono);margin-bottom:7px">最近会话</div>
+          <div id="memKeyList" style="max-height:150px;overflow:auto;font-family:var(--mono);font-size:11px;color:var(--muted)"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 实时日志 -->
+  <div class="card" id="logCard" style="margin-top:16px">
+    <div class="cardhead">
+      <h2>实时日志 · Live Log</h2>
+      <button class="mini-btn" id="btnLogRefresh">刷新</button>
+    </div>
+    <pre id="logBox" style="font-family:var(--mono);font-size:10.5px;line-height:1.75;color:var(--muted);
+         background:rgba(6,10,18,.65);border:1px solid var(--line);border-radius:11px;padding:11px 12px;
+         max-height:190px;overflow:auto;white-space:pre-wrap;margin:0">等待日志…</pre>
+    <div class="tip" style="margin-top:8px">来自 logs\bot.log，每 5 秒自动刷新</div>
+  </div>
+
+  <!-- 数据统计 -->
+  <div class="card" id="statsCard" style="margin-top:16px">
+    <div class="cardhead">
+      <h2>数据统计 · Analytics</h2>
+      <button class="mini-btn" id="btnStatsRefresh">刷新</button>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:14px">
+      <div><div style="font-size:10px;color:var(--dim);font-family:var(--mono);letter-spacing:1px">近1小时</div>
+           <div style="font-size:22px;font-family:var(--mono);color:var(--cyan)" id="st1h">—</div></div>
+      <div><div style="font-size:10px;color:var(--dim);font-family:var(--mono);letter-spacing:1px">24h 回复</div>
+           <div style="font-size:22px;font-family:var(--mono);color:var(--mint)" id="st24">—</div></div>
+      <div><div style="font-size:10px;color:var(--dim);font-family:var(--mono);letter-spacing:1px">活跃 QQ</div>
+           <div style="font-size:22px;font-family:var(--mono);color:var(--violet)" id="stUsers">—</div></div>
+      <div><div style="font-size:10px;color:var(--dim);font-family:var(--mono);letter-spacing:1px">活跃群</div>
+           <div style="font-size:22px;font-family:var(--mono);color:var(--amber)" id="stGroups">—</div></div>
+      <div><div style="font-size:10px;color:var(--dim);font-family:var(--mono);letter-spacing:1px">长期记忆</div>
+           <div style="font-size:22px;font-family:var(--mono);color:var(--ink)" id="stFacts">—</div></div>
+    </div>
+    <div style="font-size:10px;color:var(--dim);font-family:var(--mono);letter-spacing:1px;margin-bottom:6px">最近 12 小时消息量</div>
+    <div id="stChart" style="display:flex;gap:3px;align-items:flex-end;height:52px"></div>
+  </div>
+
+  <!-- 功能开关 -->
+  <div class="card" id="toggleCard" style="margin-top:16px">
+    <h2>附加功能 · Features</h2>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+      <label style="display:flex;align-items:center;gap:10px;padding:11px 13px;border-radius:12px;
+                    background:rgba(10,16,28,.5);border:1px solid var(--line);cursor:pointer">
+        <input type="checkbox" id="tgVoice" style="width:16px;height:16px;accent-color:#3fc9f0">
+        <span style="font-size:12.5px;color:var(--ink)">🎤 语音回复</span>
+        <span style="margin-left:auto;font-size:10.5px;color:var(--dim);font-family:var(--mono)">触发词触发</span>
+      </label>
+      <label style="display:flex;align-items:center;gap:10px;padding:11px 13px;border-radius:12px;
+                    background:rgba(10,16,28,.5);border:1px solid var(--line);cursor:pointer">
+        <input type="checkbox" id="tgMeme" style="width:16px;height:16px;accent-color:#3fc9f0">
+        <span style="font-size:12.5px;color:var(--ink)">🖼 表情包回复</span>
+        <span style="margin-left:auto;font-size:10.5px;color:var(--dim);font-family:var(--mono)">12% 随机</span>
+      </label>
+    </div>
+    <div class="tip" style="margin-top:10px">开关会写入 botconfig.json，重启 bot.bat 后生效。</div>
+  </div>
+
+  <details class="card">
+    <summary>▸ 可选 · 参数效果验证</summary>
+    <div class="log" id="tlog"></div>
+    <div class="row-in">
+      <input type="text" id="tin" placeholder="输入一句话，验证当前参数的实际输出…">
+      <button class="btn p" id="btnTest">发送</button>
+    </div>
+  </details>
+
+      <div class="card">
+        <div class="cardhead">
+          <h2>服务控制 · Services</h2>
+          <button class="mini-btn" id="btnSvcRefresh">刷新</button>
+        </div>
+        <div id="svcList"></div>
+        <div class="tip" style="margin-top:10px">勾选「自启」的服务会在下次运行 start.bat 时自动启动；取消勾选可省显存/内存。</div>
+      </div>
+
+      <div class="card">
+        <div class="cardhead">
+          <h2>内存清理 · Memory Clean</h2>
+          <button class="mini-btn" id="btnMemScan">扫描</button>
+        </div>
+        <div id="memScanList" style="max-height:230px;overflow:auto"></div>
+        <div class="acts" style="justify-content:flex-start;margin-top:10px">
+          <button class="btn p" id="btnCleanSuggest">清理建议项</button>
+          <button class="btn" id="btnCleanSel">清理勾选</button>
+        </div>
+        <div class="tip" style="margin-top:8px">只关闭浏览器 / 聊天软件等第三方后台，绝不碰系统进程和本控制台。</div>
+      </div>
+
+  </div><!-- /viewDash -->
+
+  <!-- NapCat 管理面板 -->
+  <div id="viewNap" style="display:none">
+    <div class="subtabs">
+      <button class="stab on" id="stabPanel">控制面板</button>
+      <button class="stab" id="stabScope">回复范围</button>
+    </div>
+
+    <div class="napwrap" id="napPanelView">
+      <div class="napbar">
+        <button class="btn p" id="napStart2">启动 NapCat</button>
+        <button class="btn d" id="napKillQQ2">关闭 QQ</button>
+        <button class="btn" id="napReload">刷新页面</button>
+        <button class="btn" id="napOpen">新窗口打开</button>
+        <button class="btn" id="napProbe">检测连接</button>
+        <div class="info" id="napInfo">状态：未检测</div>
+        <div class="info" id="napToken" title="点击复制 Token" style="cursor:pointer">Token: —</div>
+      </div>
+      <iframe class="napframe" id="napFrame" src="about:blank" title="NapCat WebUI"
+              referrerpolicy="no-referrer" allow="clipboard-read; clipboard-write"></iframe>
+      <div class="napmask" id="napMask">
+        <div style="font-size:20px">📱 手机 QQ 扫码登录</div>
+        <div id="qrImg" style="display:flex;align-items:center;justify-content:center;
+             width:230px;height:230px;background:#fff;border-radius:14px;padding:8px;
+             box-shadow:0 8px 26px rgba(0,0,0,.45)">
+          <span style="color:#5a6a84;font-size:12px">等待二维码…</span>
+        </div>
+        <div style="font-size:11.5px;color:var(--dim);font-family:var(--mono)" id="qrMeta">启动 NapCat 后自动刷新</div>
+        <div class="napbtns">
+          <button class="btn d" id="btnKillQQ">① 关闭 QQ</button>
+          <button class="btn p" id="btnStartNap">② 启动 NapCat</button>
+          <button class="btn" id="btnQrRefresh">刷新二维码</button>
+          <button class="btn" id="napRetry">重新检测</button>
+        </div>
+        <div style="font-size:11.5px;opacity:.6;max-width:520px" id="napHint">
+          提示：先点「关闭 QQ」彻底退出，再点「启动 NapCat」（已自动加 --disable-gpu 防崩溃）
+        </div>
+      </div>
+    </div>
+
+    <!-- 回复范围 -->
+    <div id="napScopeView" style="display:none">
+      <div class="card">
+        <h2>回复范围 · White / Black List</h2>
+        <div class="scope">
+          <div class="scopecard">
+            <div style="display:flex;align-items:center;justify-content:space-between">
+              <h3>群聊白名单</h3>
+              <button class="mini-btn" id="btnReloadGroups">刷新</button>
+            </div>
+            <div class="desc">留空 = 所有群都能触发。填写后，只有列表里的群会回复。</div>
+            <div class="chips" id="chipGroups"></div>
+            <div class="addrow">
+              <select id="groupPick"><option value="">— 从我的群列表选择 —</option></select>
+              <button class="btn p" id="btnPickGroup">添加</button>
+            </div>
+            <div class="addrow" style="margin-top:7px">
+              <input type="text" id="addGroup" placeholder="或手动输入群号">
+              <button class="btn" id="btnAddGroup">添加</button>
+            </div>
+          </div>
+
+          <div class="scopecard">
+            <div style="display:flex;align-items:center;justify-content:space-between">
+              <h3>QQ 白名单</h3>
+              <button class="mini-btn" id="btnReloadFriends">刷新</button>
+            </div>
+            <div class="desc">留空 = 所有人。填写后，只有这些 QQ 能触发（群聊和私聊都生效）。</div>
+            <div class="chips" id="chipUsers"></div>
+            <div class="addrow">
+              <select id="friendPick"><option value="">— 从好友列表选择 —</option></select>
+              <button class="btn p" id="btnPickFriend">添加</button>
+            </div>
+            <div class="addrow" style="margin-top:7px">
+              <input type="text" id="addUser" placeholder="或手动输入 QQ 号">
+              <button class="btn" id="btnAddUser">添加</button>
+            </div>
+          </div>
+
+          <div class="scopecard">
+            <h3>QQ 黑名单</h3>
+            <div class="desc">这些 QQ 永远不会被回复，优先级最高。</div>
+            <div class="chips" id="chipBlack"></div>
+            <div class="addrow">
+              <input type="text" id="addBlack" placeholder="QQ号">
+              <button class="btn p" id="btnAddBlack">添加</button>
+            </div>
+          </div>
+
+          <div class="scopecard">
+            <h3>生效规则</h3>
+            <div class="desc" style="line-height:2.1">
+              ① 黑名单 &gt; 白名单 &gt; 触发规则<br>
+              ② 群聊还需要 @机器人 或说唤醒词<br>
+              ③ 私聊默认全部回复<br>
+              ④ 保存后需<b style="color:var(--amber)">重启 bot.bat</b> 生效
+            </div>
+            <button class="btn p" id="btnSaveScope" style="width:100%;margin-top:10px">保存回复范围</button>
+            <div id="scopeMsg" style="font-size:10.5px;color:var(--mint);margin-top:8px;min-height:14px"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+<!-- 导入模型弹窗 -->
+<div class="modal" id="importModal">
+  <div class="modalbox">
+    <div class="modalhead">导入模型 <span id="impClose">✕</span></div>
+    <div class="modaltabs">
+      <button class="mtab on" id="mtabPull">从 Ollama 库拉取</button>
+      <button class="mtab" id="mtabGguf">从本地 GGUF 导入</button>
+    </div>
+
+    <div id="panePull">
+      <div class="f">
+        <div class="lb"><span>模型名（ollama.com/library 里的名字）</span></div>
+        <input type="text" id="pullName" placeholder="例如 qwen3.5:9b / qwen3.5:35b-a3b / gpt-oss:20b">
+        <div class="tip">9B ≈ 6.6GB · 27B ≈ 17GB · 35B-A3B ≈ 21GB。下载走官方源，可能较慢。</div>
+      </div>
+      <button class="btn p" id="btnPull">开始下载</button>
+    </div>
+
+    <div id="paneGguf" style="display:none">
+      <div class="f">
+        <div class="lb"><span>本地 GGUF 文件</span><b id="ggufCount" style="color:var(--muted)"></b></div>
+        <select id="ggufSel"></select>
+        <div class="tip">把 .gguf 放到 <code style="font-family:var(--mono)">D:\LocalAI\fishchat\imports</code> 或 <code style="font-family:var(--mono)">D:\LocalAI\models</code> 下，点「重新扫描」即可出现。</div>
+      </div>
+      <div class="f">
+        <div class="lb"><span>导入后的模型名</span></div>
+        <input type="text" id="ggufName" placeholder="例如 my-model:q4">
+      </div>
+      <div class="actrow" style="display:flex;gap:9px">
+        <button class="btn p" id="btnGguf">开始导入</button>
+        <button class="btn" id="btnRescan">重新扫描</button>
+      </div>
+    </div>
+
+    <pre class="implog" id="impLog">等待操作…</pre>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* 控制台鉴权：自动附带访问令牌 */
+(function(){
+  function tk(){
+    try{
+      var m = document.cookie.match(/(?:^|;\s*)fishchat_token=([^;]+)/);
+      return m ? m[1] : '';
+    }catch(e){ return ''; }
+  }
+  var _fetch = window.fetch.bind(window);
+  window.fetch = function(url, opt){
+    opt = opt || {};
+    var h = new Headers(opt.headers || {});
+    var t = tk();
+    if (t) h.set('X-Auth-Token', t);
+    opt.headers = h;
+    return _fetch(url, opt);
+  };
+})();
+</script>
+<script>
+const $ = id => document.getElementById(id);
+const toast = m => { const t=$('toast'); t.textContent=m; t.classList.add('show');
+  clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),2200); };
+const fmtGB = v => (v==null?'—':(Math.round(v*10)/10));
+
+let CFG = {}, DEFAULT_PROMPT = '';
+const H = { vram:[], ram:[], gpu:[], tps:[] };
+
+/* ── 装饰元素：随机图 + 随机浮现 / 停留 / 隐去 ── */
+(function(){
+  let POOL = null;
+
+  async function getPool(){
+    if (POOL) return POOL;
+    const arr = ['pet/char.png', 'pet/char2.png'];
+    try{
+      const r = await (await fetch('/api/memes')).json();
+      (r.items || []).forEach(function(n){
+        arr.push('/api/meme?name=' + encodeURIComponent(n));
+      });
+    }catch(e){}
+    POOL = arr;
+    return arr;
+  }
+
+  function pick(pool){ return pool[Math.floor(Math.random() * pool.length)]; }
+
+  function breathe(el, opt, apply){
+    if (!el) return;
+    const o = Object.assign({
+      waitMin: 6000, waitMax: 22000,
+      showMin: 5000, showMax: 15000,
+      opMax: 0.08,
+      fadeMin: 1200, fadeMax: 3000
+    }, opt || {});
+    function rnd(a, b){ return a + Math.random() * (b - a); }
+    function cycle(){
+      const wait = rnd(o.waitMin, o.waitMax);
+      setTimeout(async function(){
+        const pool = await getPool();
+        apply(el, pick(pool));
+        const fade = rnd(o.fadeMin, o.fadeMax);
+        // 先预加载，避免淡入时空白
+        el.style.transition = 'opacity ' + (fade / 1000).toFixed(2) + 's ease-in-out';
+        el.style.opacity = o.opMax;
+        const show = rnd(o.showMin, o.showMax);
+        setTimeout(function(){
+          const fade2 = rnd(o.fadeMin, o.fadeMax);
+          el.style.transition = 'opacity ' + (fade2 / 1000).toFixed(2) + 's ease-in-out';
+          el.style.opacity = 0;
+          setTimeout(cycle, fade2 + 500);
+        }, show);
+      }, wait);
+    }
+    el.style.opacity = 0;
+    setTimeout(cycle, rnd(800, 4500));
+  }
+
+  const applyBg = (el, src)=>{ el.style.backgroundImage = "url('" + src + "')"; };
+  const applyImg = (el, src)=>{
+    const im = el.querySelector('img');
+    if (im) im.src = src;
+  };
+
+  breathe(document.getElementById('wm'),
+    { opMax: 0.085, waitMin: 9000, waitMax: 30000, showMin: 8000, showMax: 20000, fadeMin: 2000, fadeMax: 4000 },
+    applyBg);
+  breathe(document.getElementById('fish1'),
+    { opMax: 0.42, waitMin: 12000, waitMax: 40000, showMin: 9000, showMax: 18000, fadeMin: 1500, fadeMax: 3500 },
+    applyImg);
+  breathe(document.getElementById('fish2'),
+    { opMax: 0.34, waitMin: 20000, waitMax: 55000, showMin: 8000, showMax: 16000, fadeMin: 1800, fadeMax: 4000 },
+    applyImg);
+})();
+
+
+/* ── 迷你折线 ── */
+function spark(cv, data, color){
+  const dpr = window.devicePixelRatio || 1;
+  const w = cv.clientWidth, h = cv.clientHeight;
+  if (!w || !h) return;
+  cv.width = w*dpr; cv.height = h*dpr;
+  const x = cv.getContext('2d');
+  x.setTransform(dpr,0,0,dpr,0,0);
+  x.clearRect(0,0,w,h);
+  if (data.length < 2) return;
+  const mx = Math.max(...data, 1);
+  const step = w / (data.length - 1);
+  const y = v => h - 2 - (v/mx)*(h-4);
+  x.beginPath();
+  x.moveTo(0, y(data[0]));
+  data.forEach((v,i)=> x.lineTo(i*step, y(v)));
+  x.strokeStyle = color; x.lineWidth = 1.6; x.lineJoin='round'; x.stroke();
+  x.lineTo(w,h); x.lineTo(0,h); x.closePath();
+  const gr = x.createLinearGradient(0,0,0,h);
+  gr.addColorStop(0, color.replace(')',', .28)').replace('rgb','rgba'));
+  gr.addColorStop(1, color.replace(')',', 0)').replace('rgb','rgba'));
+  x.fillStyle = gr; x.fill();
+}
+function push(arr, v){ arr.push(v); if (arr.length > 40) arr.shift(); }
+
+/* ── 滑块 ── */
+const S = [['ctx','vCtx',v=>v],['predict','vPred',v=>v],
+           ['temp','vTemp',v=>Number(v).toFixed(2)],['topp','vTopP',v=>Number(v).toFixed(2)],
+           ['topk','vTopK',v=>v],['rep','vRep',v=>Number(v).toFixed(2)],
+           ['numgpu','vGpu',v=> (v==-1?'自动':v)]];
+function syncLabels(){ S.forEach(([id,out,f])=>{ const e=$(id); if(e) $(out).textContent = f(e.value); });
+  $('vKeep').textContent = $('keep').value === '-1' ? '永久' : $('keep').value;
+  $('vThink').textContent = $('think').value === '1' ? '开启' : '关闭';
+}
+S.forEach(([id]) => $(id).addEventListener('input', syncLabels));
+$('keep').addEventListener('change', syncLabels);
+$('think').addEventListener('change', syncLabels);
+
+/* ── 配置 ── */
+function applyConfig(c){
+  CFG = c;
+  const sel = $('modelSel');
+  if (![...sel.options].some(o=>o.value===c.model)){
+    const o=document.createElement('option'); o.value=c.model; o.textContent=c.model; sel.appendChild(o);
+  }
+  sel.value = c.model;
+  $('ctx').value=c.num_ctx; $('predict').value=c.num_predict;
+  $('temp').value=c.temperature; $('topp').value=c.top_p;
+  $('topk').value=c.top_k; $('rep').value=c.repeat_penalty;
+  $('numgpu').value=c.num_gpu; $('keep').value=c.keep_alive;
+  $('think').value = c.think ? '1':'0';
+  $('sysPrompt').value = c.system_prompt || '';
+  DEFAULT_PROMPT = c.system_prompt || '';
+  syncLabels();
+  $('curModel').textContent = c.model;
+}
+function collect(){ return {
+  model:$('modelSel').value, num_ctx:+$('ctx').value, num_predict:+$('predict').value,
+  temperature:+$('temp').value, top_p:+$('topp').value, top_k:+$('topk').value,
+  repeat_penalty:+$('rep').value, num_gpu:+$('numgpu').value,
+  keep_alive:$('keep').value, think:$('think').value==='1',
+  system_prompt:$('sysPrompt').value }; }
+
+async function loadConfig(){
+  const c = await (await fetch('/api/config')).json();
+  applyConfig(c);
+}
+async function saveConfig(silent){
+  const payload = collect();
+  if (typeof ACTIVE_PERSONA === 'string' && ACTIVE_PERSONA) payload.persona_name = ACTIVE_PERSONA;
+  const r = await fetch('/api/config',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(payload)});
+  const j = await r.json();
+  if (j.ok){ applyConfig(j.config); try{ loadBotRuntime(); }catch(e){} if(!silent){
+    $('saveMsg').textContent='已保存 ✓'; setTimeout(()=>$('saveMsg').textContent='',1800);
+    toast('参数已保存并应用'); } }
+}
+
+/* ── 轮询 ── */
+async function poll(){
+  try{
+    const s = await (await fetch('/api/status')).json();
+    if (!s.ok){
+      $('pillOllama').textContent='OLLAMA OFFLINE'; $('pillOllama').className='pill bad';
+      return;
+    }
+    $('pillOllama').textContent = 'OLLAMA v'+s.ollama;
+    $('pillOllama').className = 'pill ok';
+    $('pillSys').textContent = 'SYS ' + new Date(s.ts*1000).toLocaleTimeString('zh-CN',{hour12:false});
+
+    /* 指标卡 */
+    const g = s.gpu||{}, m = s.mem||{};
+    $('mVram').innerHTML = (g.vram_used_mb??'--')+'<small>MB</small>';
+    $('mVramSub').textContent = `${g.vram_used_mb??'--'} / ${g.vram_total_mb??'--'} MB · ${g.vram_percent??0}%`;
+    $('mRam').innerHTML = fmtGB(m.used_gb)+'<small>GB</small>';
+    $('mRamSub').textContent = `${m.used_gb??'--'} / ${m.total_gb??'--'} GB · ${m.percent??0}%`;
+    $('mGpu').innerHTML = (g.util??'--')+'<small>%</small>';
+    const pw = g.power_limit ? `${g.power??'--'} / ${g.power_limit} W` : `${g.power??'--'} W`;
+    const gpuTag = g.cuda_id ? `${g.cuda_id} · GPU ${g.index??0}` : (g.index!=null ? `GPU ${g.index}` : 'GPU');
+    $('mGpuLab').textContent = gpuTag;
+    $('mGpuSub').textContent = `${g.temp??'--'} °C · ${pw} · ${g.clock??'--'} MHz`;
+    $('hGpuLabel').textContent = (g.index!=null ? `GPU ${g.index} UTIL` : 'GPU UTIL');
+    $('rDev').textContent = g.name
+      ? `GPU ${g.index??0} · ${g.name.replace('NVIDIA ','').replace(' Laptop GPU','')}`
+      : '—';
+    push(H.vram, g.vram_used_mb||0); push(H.ram, m.percent||0);
+    push(H.gpu, g.util||0); push(H.tps, H.tps.at(-1)||0);
+    spark($('spVram'), H.vram, 'rgb(63,201,240)');
+    spark($('spRam'), H.ram, 'rgb(61,219,160)');
+    spark($('spGpu'), H.gpu, 'rgb(139,124,246)');
+    spark($('spTps'), H.tps, 'rgb(240,180,94)');
+
+    /* 硬件条 */
+    $('hVramTxt').textContent = `${g.vram_used_mb??0} / ${g.vram_total_mb??0} MB`;
+    $('hVramBar').style.width = (g.vram_percent||0)+'%';
+    $('hRamTxt').textContent = `${m.used_gb??0} / ${m.total_gb??0} GB`;
+    $('hRamBar').style.width = (m.percent||0)+'%';
+    $('hGpuTxt').textContent = `${g.util??0}% · ${g.temp??0}°C`;
+    $('hGpuBar').style.width = (g.util||0)+'%';
+
+    /* 磁盘（自动探测，不写死） */
+    const dk = s.disks || [];
+    $('diskRows').innerHTML = dk.map(d=>`
+      <div class="g">
+        <div class="r"><span>DISK ${d.letter}:</span><span>${d.free_gb} / ${d.total_gb} GB 可用</span></div>
+        <div class="bar"><i class="i-amber" style="width:${d.percent}%"></i></div>
+      </div>`).join('') || '<div class="g"><div class="r"><span>DISK</span><span>未探测到</span></div></div>';
+
+    /* 模型表 */
+    const tb = $('modelTable');
+    const rows = (s.models||[]).map(x=>`<tr>
+      <td class="nm">${x.name}</td><td>${x.param||'—'}</td><td>${x.quant||'—'}</td>
+      <td class="num">${x.size_gb} GB</td>
+      <td class="num">${x.loaded? x.size_vram_gb+' GB':'—'}</td>
+      <td><span class="tag ${x.loaded?'on':'off'}">${x.loaded?'LOADED':'IDLE'}</span></td></tr>`).join('');
+    tb.innerHTML = rows || '<tr><td colspan="6" style="color:var(--dim)">未安装模型</td></tr>';
+
+    /* 下拉同步 */
+    const sel = $('modelSel');
+    const want = (s.models||[]).map(x=>x.name).join('|');
+    if (sel.dataset.list !== want){
+      sel.dataset.list = want;
+      sel.innerHTML = '';
+      (s.models||[]).forEach(x=>{ const o=document.createElement('option');
+        o.value=x.name; o.textContent=`${x.name}  ·  ${x.param||''} ${x.quant||''}`; sel.appendChild(o); });
+      sel.value = (s.models||[]).some(x=>x.name===CFG.model) ? CFG.model : (s.models[0]?.name||'');
+    }
+    const bs = $('botModel');
+    if (bs.dataset.list !== want){
+      bs.dataset.list = want;
+      const bcur = bs.value;
+      bs.innerHTML = '<option value="">跟随控制台</option>';
+      (s.models||[]).forEach(x=>{
+        const o=document.createElement('option'); o.value=x.name; o.textContent=x.name; bs.appendChild(o);
+      });
+      bs.value = bcur;
+    }
+    const info = (s.models||[]).find(x=>x.name===sel.value);
+    $('mSelInfo').textContent = info ? `${info.param} · ${info.quant}` : '';
+
+    /* Runtime */
+    const L = (s.loaded||[])[0];
+    if (L){
+      $('rState').textContent='已加载'; $('rState').className='g';
+      $('rCtx').textContent = L.context ? L.context+' tok' : '—';
+      $('rProc').textContent = L.processor||'—';
+      $('rVram').textContent = L.size_vram_gb+' GB';
+      $('rExp').textContent = L.expires ? L.expires.slice(11,16) : '—';
+      $('curModel').textContent = L.name;
+    } else {
+      $('rState').textContent='未加载'; $('rState').className='d';
+      $('rCtx').textContent='—'; $('rProc').textContent='—';
+      $('rVram').textContent='—'; $('rExp').textContent='—';
+      $('curModel').textContent = CFG.model||'—';
+    }
+    $('rStore').textContent = (s.models_size_gb??'—')+' GB';
+
+    /* 自检摘要 */
+    if (s.check){
+      const b = $('chkBadge');
+      const allOk = s.check.ok === s.check.total;
+      b.textContent = `${s.check.ok}/${s.check.total}`;
+      b.className = 'badge ' + (allOk ? 'g' : 'r');
+    }
+  }catch(e){
+    $('pillOllama').textContent='BACKEND OFFLINE'; $('pillOllama').className='pill bad';
+  }
+}
+
+/* ── 自检明细 ── */
+async function loadSelfcheck(){
+  try{
+    const r = await (await fetch('/api/selfcheck')).json();
+    const b = $('chkBadge');
+    const items = r.items || [];
+    b.textContent = (items.length - (r.bad||0)) + '/' + items.length;
+    b.className = 'badge ' + ((r.bad||0) ? 'r' : 'g');
+    $('chkList').innerHTML = items.map(it=>{
+      const lv = it.level || (it.ok ? 'ok' : 'bad');
+      const color = lv === 'ok' ? 'var(--mint)' : (lv === 'warn' ? 'var(--amber)' : 'var(--rose)');
+      const dot = lv === 'ok' ? 'ok' : (lv === 'warn' ? 'warn' : 'bad');
+      const fix = it.fix
+        ? '<button class="mini-btn" data-fix="' + it.fix + '" style="border-color:' + color +
+          ';color:' + color + '">更新</button>'
+        : '';
+      return '<div class="chk"><div class="dot ' + dot + '"></div>' +
+             '<div class="nm">' + it.name + '</div>' +
+             '<div class="dt" style="grid-column:span 3;color:' + color + ';font-size:10.5px" title="' +
+             String(it.detail || '').replace(/"/g,'&quot;') + '">' + (it.detail || '') + '</div>' +
+             fix + '</div>';
+    }).join('');
+    $('chkList').querySelectorAll('[data-fix]').forEach(btn=>{
+      btn.onclick = ()=>doUpdate(btn.dataset.fix, btn);
+    });
+  }catch(e){
+    $('chkList').innerHTML = '<div style="color:var(--rose);font-size:11.5px">自检失败：' + e.message + '</div>';
+  }
+}
+
+async function doUpdate(target, btn){
+  if (btn){ btn.disabled = true; btn.textContent = '更新中…'; }
+  toast('正在从官方渠道更新，请稍候…');
+  try{
+    const r = await (await fetch('/api/update', {method:'POST',
+      headers:{'Content-Type':'application/json'}, body: JSON.stringify({target})})).json();
+    toast(r.msg || (r.ok ? '更新完成' : '更新失败'));
+  }catch(e){ toast('更新请求失败：' + e.message); }
+  setTimeout(loadSelfcheck, 1500);
+}
+
+/* ── 加载 / 卸载 ── */
+async function doLoad(){
+  $('btnLoad').disabled = true;
+  $('pet').src='pet/thinking.webm'; toast('正在加载模型到显存…');
+  try{
+    await saveConfig(true);
+    const j = await (await fetch('/api/load',{method:'POST'})).json();
+    if (j.ok){ toast('模型已加载'); $('pet').src='pet/idle.webm'; }
+    else { toast('加载失败: '+(j.error||'')); $('pet').src='pet/wake.webm'; }
+  }catch(e){ toast('加载失败'); $('pet').src='pet/wake.webm'; }
+  $('btnLoad').disabled=false; poll();
+}
+async function doUnload(){
+  $('btnUnload').disabled = true;
+  try{ const j = await (await fetch('/api/unload',{method:'POST'})).json();
+       toast(j.ok?'已卸载，显存已释放':'卸载失败'); }
+  catch(e){ toast('卸载失败'); }
+  $('btnUnload').disabled=false; poll();
+}
+
+/* ── 测试 ── */
+let busy=false;
+function addLog(c,t){ const d=document.createElement('div'); d.className=c; d.textContent=t;
+  $('tlog').appendChild(d); $('tlog').scrollTop=$('tlog').scrollHeight; return d; }
+async function testChat(){
+  const q = $('tin').value.trim(); if(!q||busy) return;
+  busy=true; $('btnTest').disabled=true; $('tin').value='';
+  addLog('u',q); const a=addLog('a','…');
+  $('pet').src='pet/thinking.webm';
+  let acc='', t0=performance.now(), tps=0;
+  try{
+    await saveConfig(true);
+    const r = await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({messages:[{role:'user',content:q}]})});
+    const rd=r.body.getReader(), dec=new TextDecoder(); let buf='';
+    while(true){
+      const {done,value}=await rd.read(); if(done) break;
+      buf += dec.decode(value,{stream:true});
+      const parts=buf.split('\n\n'); buf=parts.pop();
+      for(const p of parts){
+        const line=p.trim(); if(!line.startsWith('data:')) continue;
+        const dd=line.slice(5).trim(); if(dd==='[DONE]') continue;
+        try{
+          const o=JSON.parse(dd);
+          if(o.delta){ acc+=o.delta; a.textContent=acc; $('tlog').scrollTop=$('tlog').scrollHeight; }
+          if(o.error){ a.textContent += '\n[错误] '+o.error; }
+          if(o.stats && o.stats.eval_count && o.stats.eval_duration){
+            tps = o.stats.eval_count/(o.stats.eval_duration/1e9);
+            addLog('m', `${o.stats.eval_count} tok · ${tps.toFixed(1)} tok/s · ${((performance.now()-t0)/1000).toFixed(1)}s`);
+            push(H.tps, tps);
+            $('mTps').innerHTML = tps.toFixed(1)+'<small>tok/s</small>';
+            $('mTpsSub').textContent = `${o.stats.eval_count} tokens`;
+            spark($('spTps'), H.tps, 'rgb(240,180,94)');
+          }
+        }catch(e){}
+      }
+    }
+  }catch(e){ a.textContent='出错了：'+e.message; }
+  if(!acc) a.textContent='（没有输出）';
+  $('pet').src='pet/idle.webm';
+  busy=false; $('btnTest').disabled=false; $('tin').focus();
+}
+
+/* ── 绑定 ── */
+/* ── 标签页切换 ── */
+let napLoaded = false;
+let NAP_URL = 'http://127.0.0.1:6099/webui';
+
+function switchTab(which){
+  const dash = (which === 'dash');
+  $('viewDash').style.display = dash ? '' : 'none';
+  $('viewNap').style.display  = dash ? 'none' : '';
+  $('tabDash').classList.toggle('on', dash);
+  $('tabNap').classList.toggle('on', !dash);
+  if (!dash) { loadNapcat(false); loadScope(); }
+}
+
+async function probeNapcat(verbose){
+  try{
+    const r = await (await fetch('/api/napcat/status')).json();
+    const w = r.webui || {};
+    $('napDot').className = 'dot2 ' + (w.ok ? 'ok' : 'bad');
+    // 自适应：用探测到的真实 port + token 构造 URL（登录页会自动填入 token）
+    if (r.webui_url_token) NAP_URL = r.webui_url_token;
+    if ($('napToken')){
+      $('napToken').textContent = 'Token: ' + (r.token || '未读到');
+      $('napToken').dataset.token = r.token || '';
+    }
+    if ($('napHint')){
+      if (r.qq_running && !w.ok){
+        $('napHint').textContent = '⚠ QQ 正在运行（' + (r.qq_pids||[]).length + ' 个进程），启动 NapCat 前需要先关闭';
+      } else if (r.token){
+        $('napHint').textContent = 'Token 已自动填入（' + r.token + '）· 点「登录」即可 · 端口 ' + (r.webui_port||6099);
+      } else {
+        $('napHint').textContent = '未读到 token，请检查 ' + (r.webui_conf_path || 'webui.json');
+      }
+    }
+    if (w.ok){
+      const seg = [];
+      if (r.login && r.login.qq){
+        seg.push('<b>' + r.login.qq + '</b>' + (r.login.nickname ? ' ' + r.login.nickname : ''));
+      }
+      seg.push('<b>WebUI 在线</b> · :' + (r.webui_port || 6099));
+      seg.push(r.port3000 ? '<b>HTTP :3000</b>' : '<span style="color:var(--amber)">:3000 未开</span>');
+      seg.push(r.port8081 ? '<b>机器人在线</b>' : '<span style="color:var(--amber)">机器人未开</span>');
+      $('napInfo').innerHTML = '状态：' + seg.join(' · ');
+      $('napMask').classList.remove('show');
+      $('napFrame').style.display = '';
+      if (verbose) toast('NapCat 在线');
+      return true;
+    }
+    $('napInfo').innerHTML = '状态：<b class="bad">NapCat 未启动</b>' +
+      (r.qq_running ? ' · <span style="color:var(--amber)">QQ 运行中</span>' : '');
+    $('napMask').classList.add('show');
+    $('napFrame').style.display = 'none';
+    if (verbose) toast('NapCat 未启动');
+    return false;
+  }catch(e){
+    $('napInfo').innerHTML = '状态：<b class="bad">探测失败</b>';
+    $('napDot').className = 'dot2 bad';
+    $('napMask').classList.add('show');
+    $('napFrame').style.display = 'none';
+    return false;
+  }
+}
+
+async function napStart(mode){
+  try{
+    const r = await (await fetch('/api/napcat/start',{method:'POST',
+      headers:{'Content-Type':'application/json'}, body: JSON.stringify({mode})})).json();
+    toast(r.msg || (r.ok ? '已启动' : '启动失败'));
+    if (r.ok){
+      if (mode !== 'user') toast('请在 UAC 弹窗点「是」');
+      setTimeout(()=>probeNapcat(false), 5000);
+      setTimeout(()=>probeNapcat(false), 12000);
+    }
+  }catch(e){ toast('启动失败'); }
+}
+
+/* ── NapCat 登录二维码 ── */
+async function loadQr(){
+  const box = $('qrImg');
+  if (!box) return;
+  try{
+    const r = await (await fetch('/api/napcat/qr')).json();
+    if (!r.ok){
+      box.innerHTML = '<span style="color:#5a6a84;font-size:12px;padding:0 10px;text-align:center">' +
+                      (r.msg || '等待二维码…') + '</span>';
+      if ($('qrMeta')) $('qrMeta').textContent = '先点「启动 NapCat」';
+      return;
+    }
+    box.innerHTML = '<img src="data:image/png;base64,' + r.png +
+                    '" style="width:100%;height:100%;object-fit:contain;border-radius:8px">';
+    if ($('qrMeta')) $('qrMeta').textContent = '二维码更新于 ' + r.age + ' 秒前';
+  }catch(e){}
+}
+setInterval(()=>{
+  const m = $('napMask');
+  if (m && m.classList.contains('show')) loadQr();
+}, 5000);
+
+async function napKillQQ(){
+  if (!confirm('关闭正在运行的 QQ？\n（浏览器版/手机端不受影响）')) return;
+  try{
+    const r = await (await fetch('/api/napcat/killqq',{method:'POST'})).json();
+    toast(r.msg || (r.ok ? '已关闭 QQ' : '关闭失败'));
+    setTimeout(()=>probeNapcat(false), 1200);
+  }catch(e){ toast('操作失败'); }
+}
+
+/* ── NapCat 子标签 ── */
+function switchNapTab(which){
+  const panel = (which === 'panel');
+  $('napPanelView').style.display = panel ? '' : 'none';
+  $('napScopeView').style.display = panel ? 'none' : '';
+  $('stabPanel').classList.toggle('on', panel);
+  $('stabScope').classList.toggle('on', !panel);
+  if (!panel) { loadScope(); loadGroups(); loadFriends(); }
+}
+$('stabPanel').onclick = ()=>switchNapTab('panel');
+$('stabScope').onclick = ()=>switchNapTab('scope');
+
+/* ── 回复范围（白/黑名单）── */
+let SCOPE = { whitelist_groups: [], whitelist_users: [], blacklist_users: [] };
+const SCOPE_KEYS = { group:'whitelist_groups', user:'whitelist_users', black:'blacklist_users' };
+let NAMES = {};   // id -> 显示名（群名/好友备注）
+
+function renderChips(elId, arr, kind){
+  const el = $(elId);
+  if (!el) return;
+  if (!arr || !arr.length){
+    el.innerHTML = '<span class="empty">（空 = 不限）</span>';
+    return;
+  }
+  el.innerHTML = arr.map(v => {
+    const nm = NAMES[v];
+    const label = nm
+      ? '<span>' + nm + '</span><span style="opacity:.55;font-size:10.5px">' + v + '</span>'
+      : '<span>' + v + '</span>';
+    return '<span class="chip ' + (kind==='black'?'d':'') + '">' + label +
+      '<b data-k="' + kind + '" data-v="' + v + '">✕</b></span>';
+  }).join('');
+  el.querySelectorAll('b').forEach(b=>{
+    b.onclick = ()=>removeScope(b.dataset.k, b.dataset.v);
+  });
+}
+
+/* 从 NapCat 拉真实的群列表 / 好友列表 */
+async function loadGroups(){
+  const sel = $('groupPick');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">加载中…</option>';
+  try{
+    const r = await (await fetch('/api/napcat/groups')).json();
+    const items = r.items || [];
+    items.forEach(g => { NAMES[g.id] = g.name; });
+    sel.innerHTML = '<option value="">— 从我的群列表选择 —</option>';
+    if (!items.length){
+      sel.innerHTML = '<option value="">' + (r.error || '没有读到群（NapCat 登录了吗？）') + '</option>';
+    } else {
+      items.forEach(g=>{
+        const o = document.createElement('option');
+        o.value = g.id;
+        o.textContent = (g.name || '未命名群') + '（' + g.id + '）' + (g.count ? ' · ' + g.count + '人' : '');
+        sel.appendChild(o);
+      });
+    }
+    renderScope();
+  }catch(e){
+    sel.innerHTML = '<option value="">获取失败</option>';
+  }
+}
+
+async function loadFriends(){
+  const sel = $('friendPick');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">加载中…</option>';
+  try{
+    const r = await (await fetch('/api/napcat/friends')).json();
+    const items = r.items || [];
+    items.forEach(f => { NAMES[f.id] = f.name; });
+    sel.innerHTML = '<option value="">— 从好友列表选择 —</option>';
+    if (!items.length){
+      sel.innerHTML = '<option value="">' + (r.error || '没有读到好友') + '</option>';
+    } else {
+      items.forEach(f=>{
+        const o = document.createElement('option');
+        o.value = f.id;
+        o.textContent = (f.name || '未命名') + '（' + f.id + '）';
+        sel.appendChild(o);
+      });
+    }
+    renderScope();
+  }catch(e){
+    sel.innerHTML = '<option value="">获取失败</option>';
+  }
+}
+
+function addFromSelect(kind, selId){
+  const sel = $(selId);
+  const v = sel.value;
+  if (!v) return toast('请先在下拉框里选一个');
+  const key = SCOPE_KEYS[kind];
+  const num = Number(v);
+  if (SCOPE[key].some(x => String(x) === String(num))) return toast('已经加过了');
+  SCOPE[key].push(num);
+  renderScope();
+  toast('已添加：' + (NAMES[num] || num));
+}
+
+function renderScope(){
+  renderChips('chipGroups', SCOPE.whitelist_groups, 'group');
+  renderChips('chipUsers',  SCOPE.whitelist_users,  'user');
+  renderChips('chipBlack',  SCOPE.blacklist_users,  'black');
+}
+
+function addScope(kind, inputId){
+  const el = $(inputId);
+  const v = (el.value || '').replace(/[^\d]/g, '');
+  if (!v) return toast('请输入数字（群号或 QQ 号）');
+  const key = SCOPE_KEYS[kind];
+  const num = Number(v);
+  if (SCOPE[key].some(x => String(x) === String(num))) return toast('已存在');
+  SCOPE[key].push(num);
+  el.value = '';
+  renderScope();
+}
+
+function removeScope(kind, v){
+  const key = SCOPE_KEYS[kind];
+  SCOPE[key] = SCOPE[key].filter(x => String(x) !== String(v));
+  renderScope();
+}
+
+async function loadScope(){
+  try{
+    const c = await (await fetch('/api/bot/config')).json();
+    SCOPE = {
+      whitelist_groups: c.whitelist_groups || [],
+      whitelist_users:  c.whitelist_users  || [],
+      blacklist_users:  c.blacklist_users  || []
+    };
+    renderScope();
+    if ($('scopeMsg')) $('scopeMsg').textContent = '';
+  }catch(e){}
+}
+
+async function saveScope(){
+  try{
+    const r = await (await fetch('/api/bot/config',{method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(SCOPE)})).json();
+    $('scopeMsg').textContent = r.ok ? '已保存 ✓ 重启 bot.bat 后生效' : '保存失败';
+    toast(r.ok ? '回复范围已保存' : '保存失败');
+  }catch(e){ toast('保存失败'); }
+}
+
+$('btnAddGroup').onclick = ()=>addScope('group','addGroup');
+$('btnAddUser').onclick  = ()=>addScope('user','addUser');
+$('btnAddBlack').onclick = ()=>addScope('black','addBlack');
+$('btnPickGroup').onclick  = ()=>addFromSelect('group','groupPick');
+$('btnPickFriend').onclick = ()=>addFromSelect('user','friendPick');
+$('btnReloadGroups').onclick  = loadGroups;
+$('btnReloadFriends').onclick = loadFriends;
+$('btnSaveScope').onclick = saveScope;
+[['addGroup','group'],['addUser','user'],['addBlack','black']].forEach(([id,k])=>{
+  $(id).addEventListener('keydown', e=>{
+    if (e.key === 'Enter'){ e.preventDefault(); addScope(k, id); }
+  });
+});
+
+$('btnStartNap').onclick = ()=>napStart('admin');
+if ($('btnStartNapUser')) $('btnStartNapUser').onclick = ()=>napStart('user');
+if ($('btnQrRefresh')) $('btnQrRefresh').onclick = ()=>loadQr();
+$('btnKillQQ').onclick = napKillQQ;
+if ($('napKillQQ2')) $('napKillQQ2').onclick = napKillQQ;
+$('napStart2').onclick = ()=>napStart('admin');
+$('napToken').onclick = async ()=>{
+  const t = $('napToken').dataset.token;
+  if(!t) return toast('还没读到 token');
+  try{
+    await navigator.clipboard.writeText(t);
+    toast('已复制 Token：' + t);
+  }catch(e){
+    toast('复制失败，手动输入：' + t);
+  }
+};
+
+async function loadNapcat(force){
+  const ok = await probeNapcat(force);
+  if (!ok) return;
+  const fr = $('napFrame');
+  if (force || !napLoaded || fr.src === 'about:blank'){
+    try{
+      const u = new URL(NAP_URL);
+      if (force) u.searchParams.set('t', Date.now());
+      fr.src = u.toString();
+    }catch(e){ fr.src = NAP_URL; }
+    napLoaded = true;
+  }
+}
+
+$('tabDash').onclick = ()=>switchTab('dash');
+$('tabNap').onclick  = ()=>switchTab('nap');
+$('napReload').onclick = ()=>{ napLoaded = false; loadNapcat(true); };
+$('napOpen').onclick   = ()=>window.open(NAP_URL, '_blank');
+$('napProbe').onclick  = ()=>probeNapcat(true);
+$('napRetry').onclick  = ()=>{ napLoaded = false; loadNapcat(true); };
+
+/* NapCat 标签开着时每 6 秒刷新状态 */
+setInterval(()=>{ if ($('viewNap').style.display !== 'none') probeNapcat(false); }, 6000);
+
+/* ── 预设：人设 ── */
+let PERSONAS = [];
+
+async function refreshPersonas(){
+  try{
+    const r = await (await fetch('/api/presets?kind=personas')).json();
+    PERSONAS = r.items || [];
+    const sel = $('personaSel'); const cur = sel.value;
+    sel.innerHTML = '';
+    PERSONAS.forEach(it=>{
+      const o=document.createElement('option'); o.value=it.name;
+      o.textContent = it.name + (it.description ? '  ·  '+it.description : '');
+      sel.appendChild(o);
+    });
+    if ([...sel.options].some(o=>o.value===cur)) sel.value=cur;
+    $('personaInfo').textContent = PERSONAS.length + ' 个预设';
+  }catch(e){}
+}
+
+async function loadPersona(name){
+  if(!name) return;
+  const r = await (await fetch('/api/presets/item?kind=personas&name='+encodeURIComponent(name))).json();
+  if(r && r.system_prompt){
+    $('sysPrompt').value = r.system_prompt;
+    DEFAULT_PROMPT = r.system_prompt;
+    ACTIVE_PERSONA = name;
+    const n = (r.wake_words || []).length;
+    // 立即把该人设的唤醒词填到左侧，做到"选谁显示谁"
+    if (n && $('botWake')) $('botWake').value = r.wake_words.join(',');
+    if (r.meme_dir) { /* 表情目录随后端保存时自动写入 */ }
+    toast('已载入人设：' + name + (n ? '（' + n + ' 个唤醒词，点「保存并应用」生效）' : ''));
+  }
+}
+let ACTIVE_PERSONA = '';
+
+async function savePersona(){
+  const name = (prompt('预设名称（会覆盖同名）', $('personaSel').value || '新人设') || '').trim();
+  if(!name) return;
+  const desc = (prompt('一句话描述（可留空）','') || '').trim();
+  const r = await (await fetch('/api/presets',{method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({kind:'personas', name, data:{description:desc, system_prompt:$('sysPrompt').value}})})).json();
+  if(r.ok){ await refreshPersonas(); $('personaSel').value=name; toast('人设预设已保存'); }
+  else toast('保存失败：'+(r.error||''));
+}
+
+async function delPersona(){
+  const name = $('personaSel').value; if(!name) return;
+  if(!confirm('删除人设预设「'+name+'」？此操作不可恢复。')) return;
+  await fetch('/api/presets?kind=personas&name='+encodeURIComponent(name), {method:'DELETE'});
+  await refreshPersonas(); toast('已删除');
+}
+
+/* ── 预设：机器人 ── */
+let BOTS = [], BOTCFG = {};
+
+function botFormFrom(c){
+  $('botGroupAt').value = c.group_require_at === false ? '0' : '1';
+  $('botPrivate').value  = c.private_enabled === false ? '0' : '1';
+  $('botWake').value     = (c.wake_words || []).join(',');
+  $('botGap').value      = c.min_interval_sec != null ? c.min_interval_sec : 3;
+  $('botMaxChars').value = c.max_reply_chars != null ? c.max_reply_chars : 300;
+  $('botModel').value    = c.model || '';
+}
+
+function botFormTo(){
+  return {
+    group_require_at: $('botGroupAt').value === '1',
+    private_enabled:  $('botPrivate').value === '1',
+    wake_words: $('botWake').value.split(/[,，]/).map(s=>s.trim()).filter(Boolean),
+    min_interval_sec: Number($('botGap').value) || 3,
+    max_reply_chars: Number($('botMaxChars').value) || 300,
+    model: $('botModel').value || ''
+  };
+}
+
+async function refreshBots(){
+  try{
+    const r = await (await fetch('/api/presets?kind=bots')).json();
+    BOTS = r.items || [];
+    const sel = $('botSel'); const cur = sel.value;
+    sel.innerHTML = '';
+    BOTS.forEach(it=>{
+      const o=document.createElement('option'); o.value=it.name;
+      o.textContent = it.name + (it.description ? '  ·  '+it.description : '');
+      sel.appendChild(o);
+    });
+    if ([...sel.options].some(o=>o.value===cur)) sel.value=cur;
+    $('botInfo').textContent = BOTS.length + ' 个预设';
+  }catch(e){}
+}
+
+async function loadBotRuntime(){
+  try{
+    BOTCFG = await (await fetch('/api/bot/config')).json();
+    botFormFrom(BOTCFG);
+  }catch(e){}
+}
+
+async function loadBotPreset(name){
+  if(!name) return;
+  const r = await (await fetch('/api/presets/item?kind=bots&name='+encodeURIComponent(name))).json();
+  if(r && r.config){ BOTCFG = r.config; botFormFrom(r.config); toast('已载入机器人预设：'+name); }
+}
+
+async function applyBot(){
+  const patch = botFormTo();
+  const r = await (await fetch('/api/bot/config',{method:'POST',
+    headers:{'Content-Type':'application/json'}, body: JSON.stringify(patch)})).json();
+  if(r.ok){ BOTCFG = r.config; toast('已写入 botconfig.json，重启 bot.bat 生效'); }
+  else toast('写入失败');
+}
+
+async function saveBot(){
+  const name = (prompt('预设名称（会覆盖同名）', $('botSel').value || '新预设') || '').trim();
+  if(!name) return;
+  const desc = (prompt('一句话描述（可留空）','') || '').trim();
+  const cfg = Object.assign({}, BOTCFG, botFormTo());
+  const r = await (await fetch('/api/presets',{method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({kind:'bots', name, data:{description:desc, config:cfg}})})).json();
+  if(r.ok){ await refreshBots(); $('botSel').value=name; toast('机器人预设已保存'); }
+  else toast('保存失败');
+}
+
+async function delBot(){
+  const name = $('botSel').value; if(!name) return;
+  if(!confirm('删除机器人预设「'+name+'」？')) return;
+  await fetch('/api/presets?kind=bots&name='+encodeURIComponent(name), {method:'DELETE'});
+  await refreshBots(); toast('已删除');
+}
+
+/* ── 导入模型 ── */
+let impTimer = null;
+
+function openImport(){
+  $('importModal').classList.add('show');
+  $('impLog').textContent = '等待操作…';
+  scanGguf();
+}
+function closeImport(){ $('importModal').classList.remove('show'); }
+
+async function scanGguf(){
+  try{
+    const r = await (await fetch('/api/models/gguf')).json();
+    const sel = $('ggufSel'); sel.innerHTML = '';
+    const files = r.files || [];
+    files.forEach(f=>{
+      const o=document.createElement('option');
+      o.value=f.path; o.textContent = f.name + '  (' + f.gb + ' GB)';
+      o.dataset.base = f.name.replace(/\.gguf$/i, '');
+      sel.appendChild(o);
+    });
+    if(!files.length) sel.innerHTML = '<option value="">未找到 .gguf 文件</option>';
+    $('ggufCount').textContent = files.length + ' 个';
+    suggestGgufName();
+  }catch(e){}
+}
+
+/* 自适应：选中 GGUF 后自动用文件名填充模型名 */
+function suggestGgufName(){
+  const o = $('ggufSel').selectedOptions[0];
+  if (!o || !o.dataset.base) return;
+  const base = o.dataset.base
+    .replace(/[-_.](q\d+_k_[msl]|q\d+_\d|q\d+|iq\d+_\w+|f16|bf16|fp16)$/i, '')
+    .replace(/\.gguf$/i, '');
+  const nm = $('ggufName');
+  if (!nm.dataset.touched) nm.value = base.toLowerCase().replace(/\s+/g, '-') + ':q4';
+}
+$('ggufSel').addEventListener('change', suggestGgufName);
+$('ggufName').addEventListener('input', ()=>{ $('ggufName').dataset.touched = '1'; });
+
+async function startImport(kind, name, path){
+  const r = await (await fetch('/api/models/import',{method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({kind, name, path})})).json();
+  if(!r.ok){ $('impLog').textContent = r.error || r.msg || '启动失败'; return; }
+  $('impLog').textContent = '已开始，请稍候…\n';
+  clearInterval(impTimer);
+  impTimer = setInterval(pollImport, 1500);
+}
+
+async function pollImport(){
+  try{
+    const s = await (await fetch('/api/models/import/status')).json();
+    $('impLog').textContent = s.log || '...';
+    $('impLog').scrollTop = $('impLog').scrollHeight;
+    if(!s.running){
+      clearInterval(impTimer);
+      if(s.ok){ toast('导入成功：'+s.name); closeImport(); poll(); }
+      else if(s.ok === false){ toast('导入失败，请看日志'); }
+    }
+  }catch(e){}
+}
+
+$('btnImport').onclick = openImport;
+$('impClose').onclick = closeImport;
+$('importModal').onclick = (e)=>{ if(e.target === $('importModal')) closeImport(); };
+$('mtabPull').onclick = ()=>{
+  $('panePull').style.display=''; $('paneGguf').style.display='none';
+  $('mtabPull').classList.add('on'); $('mtabGguf').classList.remove('on');
+};
+$('mtabGguf').onclick = ()=>{
+  $('panePull').style.display='none'; $('paneGguf').style.display='';
+  $('mtabGguf').classList.add('on'); $('mtabPull').classList.remove('on');
+  scanGguf();
+};
+$('btnPull').onclick = ()=>{
+  const n = $('pullName').value.trim();
+  if(!n) return toast('请填写模型名');
+  startImport('pull', n, '');
+};
+$('btnGguf').onclick = ()=>{
+  const p = $('ggufSel').value;
+  const n = $('ggufName').value.trim();
+  if(!p) return toast('没有可用 GGUF 文件');
+  if(!n) return toast('请填写导入后的模型名');
+  startImport('gguf', n, p);
+};
+$('btnRescan').onclick = scanGguf;
+$('btnDelModel').onclick = async ()=>{
+  const n = $('modelSel').value;
+  if(!n) return;
+  if(!confirm('删除模型「'+n+'」？会释放磁盘空间，且需要重新下载才能恢复。')) return;
+  const r = await (await fetch('/api/models?name='+encodeURIComponent(n), {method:'DELETE'})).json();
+  toast(r.ok ? '已删除 '+n : '删除失败');
+  poll();
+};
+
+$('btnPersonaLoad').onclick = ()=>loadPersona($('personaSel').value);
+$('btnPersonaSave').onclick = savePersona;
+$('btnPersonaDel').onclick  = delPersona;
+$('btnBotLoad').onclick  = ()=>loadBotPreset($('botSel').value);
+$('btnBotApply').onclick = applyBot;
+$('btnBotSave').onclick  = saveBot;
+$('btnBotDel').onclick   = delBot;
+
+/* ── 记忆与缓存 ── */
+const MEM_S = [['memTtl','vTtl'],['memTurns','vTurns'],['memInterval','vInterval'],['memLogMb','vLogMb']];
+function syncMemLabels(){
+  MEM_S.forEach(([id,out])=>{
+    if ($(id) && $(out)) $(out).textContent = $(id).value;
+  });
+}
+MEM_S.forEach(([id])=>{ if ($(id)) $(id).addEventListener('input', syncMemLabels); });
+
+async function loadMemory(){
+  try{
+    const r = await (await fetch('/api/memory')).json();
+    const s = r.stats || {};
+    $('memRows').textContent = (s.rows != null ? s.rows : '—') + ' 条';
+    $('memKeys').textContent = (s.keys != null ? s.keys : '—') + ' 个';
+    $('memSize').textContent = (s.size_kb != null ? s.size_kb : '—') + ' KB';
+    $('memLog').textContent  = (r.log_size_kb != null ? r.log_size_kb : '—') + ' KB';
+    const c = r.config || {};
+    $('memTtl').value      = c.ttl_days != null ? c.ttl_days : 7;
+    $('memTurns').value    = c.max_turns != null ? c.max_turns : 6;
+    $('memInterval').value = c.cleanup_interval_min != null ? c.cleanup_interval_min : 30;
+    $('memLogMb').value    = c.log_max_mb != null ? c.log_max_mb : 2;
+    syncMemLabels();
+
+    const kl = $('memKeyList');
+    const keys = r.keys || [];
+    if (!keys.length){
+      kl.innerHTML = '<span style="color:var(--dim)">（还没有记忆，聊几句就会出现）</span>';
+      return;
+    }
+    kl.innerHTML = keys.map(k=>{
+      const isGroup = k.key.indexOf('g:') === 0;
+      const label = (isGroup ? '群 ' : 'QQ ') + k.key.slice(2);
+      let t = '';
+      if (k.last_ts) {
+        const d = new Date(k.last_ts * 1000);
+        t = d.toLocaleString('zh-CN', {month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit'});
+      }
+      return '<div style="display:flex;align-items:center;gap:8px;padding:5px 2px;border-bottom:1px solid rgba(110,155,225,.07)">' +
+        '<span style="flex:1">' + label + '</span>' +
+        '<span style="color:var(--dim)">' + k.count + ' 条 · ' + t + '</span>' +
+        '<b data-key="' + k.key + '" style="cursor:pointer;color:var(--rose);opacity:.6">✕</b></div>';
+    }).join('');
+    kl.querySelectorAll('b[data-key]').forEach(b=>{
+      b.onclick = async ()=>{
+        if (!confirm('清空这个会话的记忆？')) return;
+        await fetch('/api/memory/clear', {method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({key: b.dataset.key})});
+        toast('已清空该会话记忆');
+        loadMemory();
+      };
+    });
+  }catch(e){}
+}
+
+async function memCleanup(){
+  try{
+    const r = await (await fetch('/api/memory/cleanup', {method:'POST'})).json();
+    if (r.ok){
+      toast('清理完成：过期 ' + r.result.expired + ' · 裁掉 ' + r.result.trimmed +
+            ' · 剩余 ' + r.result.remaining + ' 条');
+      loadMemory();
+    } else toast('清理失败：' + (r.error || ''));
+  }catch(e){ toast('清理失败'); }
+}
+
+async function memSaveCfg(){
+  const body = {
+    memory_ttl_days: +$('memTtl').value,
+    memory_max_turns: +$('memTurns').value,
+    cleanup_interval_min: +$('memInterval').value,
+    log_max_mb: +$('memLogMb').value
+  };
+  const r = await (await fetch('/api/bot/config', {method:'POST',
+    headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)})).json();
+  toast(r.ok ? '设置已保存，重启 bot.bat 后生效' : '保存失败');
+}
+
+async function memClearAll(){
+  if (!confirm('清空全部对话记忆？此操作不可恢复。')) return;
+  try{
+    const r = await (await fetch('/api/memory/clear', {method:'POST',
+      headers:{'Content-Type':'application/json'}, body: '{}'})).json();
+    toast('已清空 ' + (r.deleted || 0) + ' 条记忆');
+    loadMemory();
+  }catch(e){ toast('清空失败'); }
+}
+
+$('btnMemRefresh').onclick = loadMemory;
+$('btnMemClean').onclick   = memCleanup;
+$('btnMemSaveCfg').onclick = memSaveCfg;
+$('btnMemClear').onclick   = memClearAll;
+
+/* ── 服务控制 ── */
+async function loadServices(){
+  try{
+    const r = await (await fetch('/api/services')).json();
+    const auto = r.autostart || {};
+    const box = $('svcList');
+    box.innerHTML = (r.services || []).map(s=>{
+      const dot = s.running ? 'ok' : 'off';
+      const checked = auto[s.id] ? 'checked' : '';
+      const dis = s.can_start ? '' : 'disabled';
+      const btn = s.running
+        ? '<button class="mini-btn d" data-stop="' + s.id + '">停止</button>'
+        : '<button class="mini-btn" data-start="' + s.id + '" ' + dis + '>启动</button>';
+      return '<div style="display:grid;grid-template-columns:9px 1fr auto auto;gap:9px;align-items:center;padding:8px 2px;border-bottom:1px solid rgba(110,155,225,.07)">' +
+        '<div class="dot ' + dot + '"></div>' +
+        '<div><div style="font-size:12px;color:var(--ink)">' + s.label + '</div>' +
+        '<div style="font-size:10.5px;color:var(--dim);font-family:var(--mono);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:190px">' + (s.detail || '') + '</div></div>' +
+        '<div>' + btn + '</div>' +
+        '<label style="font-size:11px;color:var(--muted);display:flex;align-items:center;gap:4px;white-space:nowrap"><input type="checkbox" data-auto="' + s.id + '" ' + checked + '> 自启</label>' +
+        '</div>';
+    }).join('');
+    box.querySelectorAll('[data-start]').forEach(b=>b.onclick=()=>svcAction(b.dataset.start,'start'));
+    box.querySelectorAll('[data-stop]').forEach(b=>b.onclick=()=>svcAction(b.dataset.stop,'stop'));
+    box.querySelectorAll('[data-auto]').forEach(c=>c.onchange=async ()=>{
+      await fetch('/api/services',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({id:c.dataset.auto, action:'autostart', enabled:c.checked})});
+      toast('自启设置已保存：' + (c.checked ? '下次会自动启动' : '下次不启动'));
+    });
+  }catch(e){}
+}
+async function svcAction(id, act){
+  toast(act === 'start' ? '正在启动…' : '正在停止…');
+  try{
+    const r = await (await fetch('/api/services',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({id, action:act})})).json();
+    toast(r.msg || (r.ok ? '完成' : '失败'));
+  }catch(e){ toast('操作失败'); }
+  setTimeout(loadServices, 3000);
+}
+
+/* ── 内存清理 ── */
+let MEMITEMS = [];
+async function loadMemScan(){
+  try{
+    const r = await (await fetch('/api/mem/scan')).json();
+    MEMITEMS = r.items || [];
+    const box = $('memScanList');
+    const head = '<div style="font-size:11px;color:var(--dim);margin-bottom:8px;font-family:var(--mono)">可用 ' +
+                 r.free_gb + ' GB · 可回收约 ' + ((r.total_mb || 0)/1024).toFixed(1) + ' GB</div>';
+    box.innerHTML = head + MEMITEMS.map((it, i)=>{
+      const lv = it.level;
+      const color = lv==='suggest' ? 'var(--mint)' : lv==='caution' ? 'var(--amber)' : 'var(--muted)';
+      const tag = lv==='suggest' ? '建议' : lv==='caution' ? '使用中' : '未知';
+      return '<label style="display:grid;grid-template-columns:14px 1fr auto;gap:8px;align-items:center;' +
+        'padding:5px 2px;border-bottom:1px solid rgba(110,155,225,.06);cursor:pointer">' +
+        '<input type="checkbox" data-i="' + i + '" ' + (lv==='suggest' ? 'checked' : '') + '>' +
+        '<span style="font-size:11.5px">' + (it.note || it.name) +
+        '<span style="color:var(--dim);font-size:10px"> ×' + it.count + '</span></span>' +
+        '<span style="font-family:var(--mono);font-size:10.5px;color:' + color + '">' + it.mb + 'MB · ' + tag + '</span></label>';
+    }).join('');
+  }catch(e){ toast('扫描失败'); }
+}
+async function doClean(list){
+  if(!list || !list.length) return toast('没有可清理项');
+  try{
+    const r = await (await fetch('/api/mem/clean',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({groups:list})})).json();
+    toast('已关闭 ' + r.killed + ' 个进程，释放约 ' + ((r.freed_mb||0)/1024).toFixed(1) + ' GB');
+  }catch(e){ toast('清理失败'); }
+  setTimeout(loadMemScan, 1500);
+}
+$('btnSvcRefresh').onclick = loadServices;
+$('btnMemScan').onclick = loadMemScan;
+$('btnCleanSuggest').onclick = ()=>doClean(MEMITEMS.filter(i=>i.level==='suggest'));
+$('btnCleanSel').onclick = ()=>{
+  const sel = [...$('memScanList').querySelectorAll('input[data-i]:checked')].map(c=>MEMITEMS[+c.dataset.i]);
+  doClean(sel);
+};
+
+$('btnSave').onclick = ()=>saveConfig(false);
+$('btnLoad').onclick = doLoad;
+$('btnUnload').onclick = doUnload;
+$('btnTest').onclick = testChat;
+$('btnRecheck').onclick = ()=>{ toast('正在重新自检…'); loadSelfcheck(); poll(); };
+$('btnReset').onclick = ()=>{
+  $('sysPrompt').value=DEFAULT_PROMPT;
+  $('ctx').value=4096; $('predict').value=512; $('temp').value=0.85;
+  $('topp').value=0.92; $('topk').value=40; $('rep').value=1.08;
+  $('numgpu').value=-1; $('keep').value='30m'; $('think').value='0';
+  syncLabels(); toast('已恢复默认（记得保存）');
+};
+$('tin').addEventListener('keydown', e=>{ if(e.key==='Enter'){e.preventDefault(); testChat();} });
+window.addEventListener('resize', ()=>{
+  spark($('spVram'),H.vram,'rgb(63,201,240)');
+  spark($('spRam'),H.ram,'rgb(61,219,160)');
+  spark($('spGpu'),H.gpu,'rgb(139,124,246)');
+  spark($('spTps'),H.tps,'rgb(240,180,94)');
+});
+
+(async function(){
+  try{ await loadConfig(); }catch(e){}
+  try{ const bc = await (await fetch('/api/bot/config')).json(); if (bc && bc.persona_name) ACTIVE_PERSONA = bc.persona_name; }catch(e){}
+  poll(); loadSelfcheck();
+  refreshPersonas(); refreshBots(); loadBotRuntime(); loadMemory();
+  loadServices();
+  setInterval(poll, 2500);
+  setInterval(loadSelfcheck, 15000);
+})();
+
+/* ── 多页重组：监控台 / 参数设置 / 工具 / NapCat ── */
+(function(){
+  const vd = document.getElementById('viewDash');
+  const vn = document.getElementById('viewNap');
+  const tabsBar = document.querySelector('.tabs');
+  if (!vd || !vn || !tabsBar) return;
+  const grid = vd.querySelector('.grid');
+  const metrics = vd.querySelector('.metrics');
+  const testCard = vd.querySelector('details.card');
+  const allCards = grid ? [...grid.querySelectorAll('.card')] : [];
+  const has = (re)=> allCards.filter(c=>{
+    const h = c.querySelector('h2');
+    return h && re.test(h.textContent);
+  });
+  const petCard = allCards.find(c=>c.querySelector('.pet'));
+  const one = (re)=> has(re)[0];
+
+  // 必须先取引用，后面 innerHTML='' 会把这些节点从 DOM 摘下来
+  const statsCard  = document.getElementById('statsCard');
+  const toggleCard = document.getElementById('toggleCard');
+  const logCard    = document.getElementById('logCard');
+
+  const modelCard   = one(/^Model$/);
+  const ctxCard     = one(/Context/);
+  const sampCard    = one(/Sampling/);
+  const perfCard    = one(/Performance/);
+  const personaCard = one(/System Prompt/);
+  const botCard     = one(/机器人预设/);
+  const selfCard    = one(/自检/);
+  const memCard     = one(/记忆与缓存/);
+  const svcCard     = one(/服务控制/);
+  const cleanCard   = one(/内存清理/);
+
+  vd.innerHTML = '';
+
+  // ① 监控台：保持原来的两栏布局
+  const pHome = document.createElement('div');
+  pHome.className = 'page on';
+  if (metrics) pHome.appendChild(metrics);
+  const g = document.createElement('div');
+  g.className = 'grid';
+  const left = document.createElement('div');
+  [petCard, one(/Runtime/), one(/Hardware/)].filter(Boolean).forEach(n=>left.appendChild(n));
+  const right = document.createElement('div');
+  [modelCard, statsCard, logCard].filter(Boolean).forEach(n=>{
+    n.style.marginTop = '15px';
+    right.appendChild(n);
+  });
+  g.appendChild(left); g.appendChild(right);
+  pHome.appendChild(g);
+
+  // 首页底部通栏：自检 + 功能开关 + 参数效果验证
+  [selfCard, toggleCard, testCard].filter(Boolean).forEach(n=>{
+    n.style.marginTop = '16px';
+    pHome.appendChild(n);
+  });
+
+  // ② 参数设置：带目录检索
+  const pParams = document.createElement('div');
+  pParams.className = 'page';
+  const toc = document.createElement('div');
+  toc.className = 'toc';
+  toc.innerHTML = '<span class="lbl">目录</span>';
+  const pg = document.createElement('div');
+  pg.className = 'pgrid';
+  [ctxCard, sampCard, perfCard, personaCard, botCard].filter(Boolean).forEach((n, i)=>{
+    if (!n.id) n.id = 'par-' + i;
+    const a = document.createElement('a');
+    a.href = '#' + n.id;
+    const h = n.querySelector('h2');
+    a.textContent = h ? h.textContent.replace(/\s*·.*$/, '').trim() : '参数';
+    a.onclick = (e)=>{
+      e.preventDefault();
+      n.scrollIntoView({ behavior:'smooth', block:'center' });
+      n.classList.add('flash');
+      setTimeout(()=>n.classList.remove('flash'), 1300);
+    };
+    toc.appendChild(a);
+    pg.appendChild(n);
+  });
+  pParams.appendChild(toc);
+  pParams.appendChild(pg);
+
+  // ③ 工具：服务控制 / 内存清理 / 记忆 / 反馈测试
+  const pTools = document.createElement('div');
+  pTools.className = 'page';
+  const tg = document.createElement('div');
+  tg.className = 'pgrid';
+  [svcCard, cleanCard, memCard].filter(Boolean).forEach(n=>tg.appendChild(n));
+  pTools.appendChild(tg);
+
+  // ④ 陪刷抖音
+  const pDy = document.createElement('div');
+  pDy.className = 'page';
+  pDy.innerHTML = `
+    <div class="card">
+      <div class="cardhead">
+        <h2>🐟 陪刷抖音 · Douyin Companion</h2>
+        <div style="display:flex;gap:8px">
+          <button class="mini-btn" id="dyRefresh">刷新</button>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px">
+        <div><div style="font-size:10px;color:var(--dim);font-family:var(--mono)">状态</div>
+             <div style="font-size:16px;font-family:var(--mono)" id="dyState">—</div></div>
+        <div><div style="font-size:10px;color:var(--dim);font-family:var(--mono)">当前应用</div>
+             <div style="font-size:12px;font-family:var(--mono);color:var(--cyan);word-break:break-all" id="dyApp">—</div></div>
+        <div><div style="font-size:10px;color:var(--dim);font-family:var(--mono)">草稿数</div>
+             <div style="font-size:16px;font-family:var(--mono)" id="dyCount">—</div></div>
+        <div><div style="font-size:10px;color:var(--dim);font-family:var(--mono)">上次读取</div>
+             <div style="font-size:12px;font-family:var(--mono)" id="dyRead">—</div></div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
+        <select id="dyDevice" style="min-width:220px"></select>
+        <input id="dyInterval" type="number" value="90" min="30"
+               style="width:110px" title="两条草稿最小间隔（秒）">
+        <button class="btn p" id="dyStart">开始陪刷</button>
+        <button class="btn d" id="dyStop">停止</button>
+        <button class="btn" id="dyClear">清空草稿</button>
+      </div>
+      <div class="tip" id="dyErr" style="color:var(--amber);margin-bottom:10px"></div>
+      <div style="font-size:10px;color:var(--dim);font-family:var(--mono);margin-bottom:6px">最近读到的屏幕文字</div>
+      <pre id="dyText" style="font-family:var(--mono);font-size:10.5px;color:var(--muted);
+           background:rgba(6,10,18,.65);border:1px solid var(--line);border-radius:11px;
+           padding:11px;max-height:130px;overflow:auto;white-space:pre-wrap;margin:0 0 14px">—</pre>
+      <div style="font-size:10px;color:var(--dim);font-family:var(--mono);margin-bottom:6px">她的评论草稿（待审核）</div>
+      <div id="dyDrafts" style="max-height:320px;overflow:auto"></div>
+    </div>`;
+  vd.appendChild(pHome); vd.appendChild(pParams); vd.appendChild(pTools); vd.appendChild(pDy);
+  vd.appendChild(vn);
+  const pages = [pHome, pParams, pTools, pDy, vn];
+
+  // 标签栏
+  tabsBar.innerHTML = '';
+  const DEFS = [
+    { label:'📊 监控台' },
+    { label:'⚙ 参数设置' },
+    { label:'🧰 工具' },
+    { label:'🐟 陪刷' },
+    { label:'🐋 NapCat' }
+  ];
+  const tabs = DEFS.map((d, i)=>{
+    const b = document.createElement('button');
+    b.className = 'tab' + (i === 0 ? ' on' : '');
+    b.textContent = d.label;
+    b.onclick = ()=>go(i);
+    tabsBar.appendChild(b);
+    return b;
+  });
+  const nav = document.createElement('div');
+  nav.className = 'tabnav';
+  const prev = document.createElement('button'); prev.textContent = '←'; prev.title = '上一页 (←)';
+  const next = document.createElement('button'); next.textContent = '→'; next.title = '下一页 (→)';
+  nav.appendChild(prev); nav.appendChild(next);
+  tabsBar.appendChild(nav);
+
+  let cur = 0;
+  function go(i){
+    cur = i;
+    pages.forEach((p, k)=>{ p.style.display = (k === i) ? 'block' : 'none'; });
+    tabs.forEach((b, k)=>b.classList.toggle('on', k === i));
+    if (i === 4){ try { loadNapcat(false); loadScope(); } catch(e){} }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+  prev.onclick = ()=>go((cur + 3) % 5);
+  next.onclick = ()=>go((cur + 1) % 5);
+  document.addEventListener('keydown', (e)=>{
+    if (e.target && e.target.matches && e.target.matches('input,textarea,select')) return;
+    if (e.key === 'ArrowRight') go((cur + 1) % 5);
+    if (e.key === 'ArrowLeft') go((cur + 3) % 5);
+  });
+  go(0);
+})();
+
+/* ── 数据统计 & 功能开关 ── */
+async function loadStats(){
+  try{
+    const s = await (await fetch('/api/stats')).json();
+    const set = (id, v)=>{ const e = $(id); if (e) e.textContent = (v == null ? '—' : v); };
+    set('st1h', s.msgs_1h);
+    set('st24', s.replies_24h);
+    set('stUsers', s.users_7d);
+    set('stGroups', s.groups_7d);
+    set('stFacts', s.facts);
+    const chart = $('stChart');
+    if (chart && s.hourly){
+      const mx = Math.max(1, ...s.hourly);
+      chart.innerHTML = s.hourly.map(v=>{
+        const h = Math.max(3, Math.round(v / mx * 46));
+        return '<div style="flex:1;display:flex;align-items:flex-end">' +
+          '<div style="width:100%;height:' + h + 'px;border-radius:3px;' +
+          'background:linear-gradient(180deg,#5fe0ff,#2a8fd0);opacity:' + (v ? 1 : 0.22) + '"></div></div>';
+      }).join('');
+    }
+  }catch(e){}
+}
+async function loadToggles(){
+  try{
+    const c = await (await fetch('/api/bot/config')).json();
+    if ($('tgVoice')) $('tgVoice').checked = !!c.voice_enabled;
+    if ($('tgMeme'))  $('tgMeme').checked  = !!c.meme_enabled;
+  }catch(e){}
+}
+async function saveToggle(key, val){
+  await fetch('/api/bot/config', {method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({[key]: val})});
+  toast('已保存：' + (val ? '开启' : '关闭') + '（重启 bot.bat 生效）');
+}
+async function loadLog(){
+  try{
+    const r = await (await fetch('/api/log?n=12')).json();
+    const box = $('logBox');
+    if (!box) return;
+    if (!r.lines || !r.lines.length){
+      box.textContent = '（暂无日志，机器人启动后这里会有输出）';
+      return;
+    }
+    box.textContent = r.lines.join('\n');
+    box.scrollTop = box.scrollHeight;
+  }catch(e){}
+}
+if ($('btnLogRefresh')) $('btnLogRefresh').onclick = loadLog;
+loadLog();
+setInterval(loadLog, 5000);
+
+if ($('btnStatsRefresh')) $('btnStatsRefresh').onclick = loadStats;
+if ($('tgVoice')) $('tgVoice').onchange = ()=>saveToggle('voice_enabled', $('tgVoice').checked);
+if ($('tgMeme'))  $('tgMeme').onchange  = ()=>saveToggle('meme_enabled',  $('tgMeme').checked);
+loadStats(); loadToggles();
+
+/* ── 陪刷抖音 ── */
+async function loadDy(){
+  try{
+    const r = await (await fetch('/api/douyin/status')).json();
+    if(!r || !r.ok) return;
+    const d = r.data || {};
+    if ($('dyState')){
+      $('dyState').textContent = d.running ? '运行中' : '已停止';
+      $('dyState').style.color = d.running ? 'var(--mint)' : 'var(--muted)';
+    }
+    if ($('dyApp')) $('dyApp').textContent = d.current_app || '—';
+    if ($('dyCount')) $('dyCount').textContent = (d.drafts || 0);
+    if ($('dyRead')) $('dyRead').textContent = d.last_read_ts
+      ? new Date(d.last_read_ts * 1000).toLocaleTimeString() : '—';
+    if ($('dyText')) $('dyText').textContent = d.last_text || '—';
+    if ($('dyErr')) $('dyErr').textContent = d.error ? ('⚠ ' + d.error) : '';
+    const sel = $('dyDevice');
+    if (sel && sel.options.length === 0 && d.devices){
+      d.devices.forEach(function(x){
+        const o = document.createElement('option');
+        o.value = x; o.textContent = x;
+        if (x === d.serial) o.selected = true;
+        sel.appendChild(o);
+      });
+    }
+    const dr = await (await fetch('/api/douyin/drafts')).json();
+    const box = $('dyDrafts');
+    if (box){
+      const items = dr.items || [];
+      box.innerHTML = items.length ? items.map(function(it, i){
+        const t = new Date(it.ts * 1000).toLocaleString();
+        return '<div style="padding:9px 11px;border:1px solid var(--line);border-radius:11px;' +
+          'margin-bottom:8px;background:rgba(10,16,28,.5)">' +
+          '<div style="font-size:10.5px;color:var(--dim);font-family:var(--mono);margin-bottom:4px">' +
+          t + ' · ' + (it.title || '').slice(0, 40) + '</div>' +
+          '<div style="font-size:12px;color:var(--ink);line-height:1.6">' + (it.comment || '') + '</div>' +
+          '<div style="margin-top:6px;display:flex;gap:6px">' +
+          '<button class="mini-btn" data-copy="' + i + '">复制</button></div></div>';
+      }).join('') : '<div style="color:var(--dim);font-size:11.5px">还没有草稿</div>';
+      box.querySelectorAll('[data-copy]').forEach(function(b){
+        b.onclick = function(){
+          const it = items[+b.dataset.copy];
+          try{ navigator.clipboard.writeText(it.comment); toast('已复制，去抖音粘贴'); }
+          catch(e){ toast('复制失败'); }
+        };
+      });
+    }
+  }catch(e){}
+}
+async function dyPost(path, body){
+  const r = await (await fetch(path, {method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify(body || {})})).json();
+  toast(r.msg || (r.ok ? '完成' : '失败'));
+  setTimeout(loadDy, 1200);
+}
+if ($('dyRefresh')) $('dyRefresh').onclick = loadDy;
+if ($('dyStart')) $('dyStart').onclick = function(){
+  dyPost('/api/douyin/start', {
+    serial: $('dyDevice') ? $('dyDevice').value : '',
+    min_interval: parseInt($('dyInterval').value || '90', 10)
+  });
+};
+if ($('dyStop')) $('dyStop').onclick = function(){ dyPost('/api/douyin/stop'); };
+if ($('dyClear')) $('dyClear').onclick = function(){ dyPost('/api/douyin/clear'); };
+loadDy();
+setInterval(loadDy, 8000);
+
+
+setInterval(loadStats, 60000);
+</script>
+</body>
+</html>
