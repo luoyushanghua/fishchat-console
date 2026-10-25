@@ -137,6 +137,30 @@ logs/             日志
 
 ---
 
-## License
+## 致谢与第三方组件
 
-MIT
+控制台代码为本项目原创（MIT）。运行时**对接**以下开源项目，均**未打包**、需自行安装：
+
+| 项目 | 用途 | 许可证 | 是否随本仓库分发 |
+|---|---|---|---|
+| [Ollama](https://github.com/ollama/ollama) | 本地推理引擎 | MIT | ❌ |
+| [NapCatQQ](https://github.com/NapNeko/NapCatQQ) | QQ 机器人框架（可选） | Limited Redistribution License | ❌（禁止再分发） |
+| [GPT-SoVITS](https://github.com/RVC-Boss/GPT-SoVITS) | 语音合成（可选） | MIT | ❌ |
+| [edge-tts](https://github.com/rany2/edge-tts) | 语音备用引擎（可选） | LGPLv3 | ❌ |
+
+> ⚠️ NapCatQQ 使用自定义许可证，**禁止再分发**，因此本仓库不包含其任何文件。
+> 若你自行添加角色立绘、动作素材，另有授权要求（形象原型 CC BY-NC-SA 4.0，
+> 动作素材来自 dsh-pet 且不可商用）。**本仓库不含任何图片或音频素材。**
+
+完整说明见 [ACKNOWLEDGEMENTS.md](ACKNOWLEDGEMENTS.md)。
+
+## 许可证
+
+| 内容 | 许可证 |
+|---|---|
+| 代码（`app.py`、`static/`、`tools/`） | **MIT** |
+| 文档（README、ACKNOWLEDGEMENTS） | CC BY 4.0 |
+| 人设预设文本 | 随代码 MIT，但涉及的角色形象另有归属 |
+| 角色图片 / 音频素材 | **不包含**，使用者自行负责 |
+
+本项目为个人学习作品，与上述开源项目作者无隶属或背书关系。
