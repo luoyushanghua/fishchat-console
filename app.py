@@ -663,7 +663,10 @@ def _tray_running():
 
 
 def _py():
-    for c in (sys.executable, r"C:\Users\feather\AppData\Local\Programs\Python\Python312\python.exe"):
+    """找一个可用的 Python 解释器"""
+    import shutil as _sh
+    cands = [sys.executable, _sh.which("python"), _sh.which("python3"), _sh.which("py")]
+    for c in cands:
         if c and os.path.isfile(c):
             return c
     return "python"
