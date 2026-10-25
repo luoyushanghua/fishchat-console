@@ -4,6 +4,8 @@
 
 > Zero-dependency local LLM dashboard. Pure Python stdlib + a single HTML file.
 
+![界面预览](docs/screenshot.png)
+
 ---
 
 ## 它解决什么问题

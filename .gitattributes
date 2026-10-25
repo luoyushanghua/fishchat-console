@@ -1,0 +1,3 @@
+# 让 GitHub 语言统计忽略前端模板，主语言显示为 Python
+*.html linguist-detectable=false
+*.bat  linguist-detectable=false
