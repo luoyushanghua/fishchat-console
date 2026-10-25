@@ -1,4 +1,4 @@
-# 🐟 大肥鱼控制中心 · Local AI Console
+# FishChat 控制台 · Local AI Console
 
 **v1.1.0** · 一个**零依赖**的本地大模型控制台。单文件后端 + 单页前端，不需要 pip install，不需要 Node.js，双击一个 `bat` 就能跑。
 

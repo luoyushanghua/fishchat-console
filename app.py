@@ -16,7 +16,7 @@ from urllib.request import Request, urlopen
 
 APP_VERSION = "1.1.0"
 APP_REPO = "luoyushanghua/fishchat-console"
-APP_NAME = "大肥鱼控制中心"
+APP_NAME = "FishChat 控制台"
 
 OLLAMA = os.environ.get("OLLAMA_BASE", "http://127.0.0.1:11434")
 PORT = int(os.environ.get("FISHCHAT_PORT", "8080"))
