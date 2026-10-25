@@ -14,6 +14,10 @@ from urllib.error import URLError
 from urllib.parse import parse_qs, urlparse
 from urllib.request import Request, urlopen
 
+APP_VERSION = "1.1.0"
+APP_REPO = "luoyushanghua/fishchat-console"
+APP_NAME = "大肥鱼控制中心"
+
 OLLAMA = os.environ.get("OLLAMA_BASE", "http://127.0.0.1:11434")
 PORT = int(os.environ.get("FISHCHAT_PORT", "8080"))
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -663,10 +667,7 @@ def _tray_running():
 
 
 def _py():
-    """找一个可用的 Python 解释器"""
-    import shutil as _sh
-    cands = [sys.executable, _sh.which("python"), _sh.which("python3"), _sh.which("py")]
-    for c in cands:
+    for c in (sys.executable, r"C:\Users\feather\AppData\Local\Programs\Python\Python312\python.exe"):
         if c and os.path.isfile(c):
             return c
     return "python"
@@ -1432,6 +1433,104 @@ CONSOLE_TOKEN = console_token()
 OPEN_GET = {"/", "/api/health", "/api/status", "/index.html"}
 
 
+def _ver_tuple(v):
+    parts = []
+    for x in str(v or "").lstrip("vV").split("."):
+        try:
+            parts.append(int("".join(ch for ch in x if ch.isdigit()) or 0))
+        except Exception:
+            parts.append(0)
+    while len(parts) < 3:
+        parts.append(0)
+    return tuple(parts[:3])
+
+
+def update_check():
+    """查询 GitHub 最新 release，与本地版本比对"""
+    out = {"ok": True, "current": APP_VERSION, "latest": "", "has_update": False,
+           "url": "", "notes": "", "published": "", "repo": APP_REPO}
+    try:
+        req = Request("https://api.github.com/repos/%s/releases/latest" % APP_REPO,
+                      headers={"User-Agent": "fishchat-console/%s" % APP_VERSION,
+                               "Accept": "application/vnd.github+json"})
+        with urlopen(req, timeout=15) as r:
+            data = json.loads(r.read().decode("utf-8"))
+        latest = (data.get("tag_name") or "").lstrip("vV")
+        out["latest"] = latest
+        out["url"] = data.get("html_url") or ""
+        out["notes"] = (data.get("body") or "")[:1500]
+        out["published"] = (data.get("published_at") or "")[:10]
+        out["has_update"] = _ver_tuple(latest) > _ver_tuple(APP_VERSION)
+        for a in (data.get("assets") or []):
+            if (a.get("name") or "").lower().endswith(".zip"):
+                out["asset"] = a.get("browser_download_url")
+                out["asset_name"] = a.get("name")
+                out["asset_size"] = a.get("size")
+                break
+    except Exception as e:
+        out["ok"] = False
+        out["error"] = str(e)
+    return out
+
+
+def update_apply():
+    """下载 release 的 zip 并覆盖安装（保留 data/ logs/ .git）"""
+    info = update_check()
+    if not info.get("ok"):
+        return False, "检查更新失败：%s" % info.get("error", "")
+    if not info.get("has_update"):
+        return True, "已是最新版本 v%s" % APP_VERSION
+    url = info.get("asset") or ""
+    if not url:
+        return False, "该版本没有附带 zip 包，请手动更新：%s" % info.get("url", "")
+    import tempfile
+    import zipfile
+    import shutil
+    tmp = tempfile.mkdtemp(prefix="fishchat_up_")
+    zpath = os.path.join(tmp, "pkg.zip")
+    try:
+        with urlopen(Request(url, headers={"User-Agent": "fishchat-console"}),
+                     timeout=300) as r, open(zpath, "wb") as f:
+            while True:
+                chunk = r.read(1 << 16)
+                if not chunk:
+                    break
+                f.write(chunk)
+        ex = os.path.join(tmp, "x")
+        os.makedirs(ex, exist_ok=True)
+        with zipfile.ZipFile(zpath) as z:
+            z.extractall(ex)
+        # 兼容 zip 内多一层目录
+        root = ex
+        entries = [e for e in os.listdir(ex)]
+        if len(entries) == 1 and os.path.isdir(os.path.join(ex, entries[0])):
+            root = os.path.join(ex, entries[0])
+        SKIP = {"data", "logs", ".git", ".tray.lock", "__pycache__"}
+        copied = 0
+        for cur, dirs, files in os.walk(root):
+            rel = os.path.relpath(cur, root)
+            if rel.split(os.sep)[0] in SKIP:
+                continue
+            dst = BASE_DIR if rel == "." else os.path.join(BASE_DIR, rel)
+            os.makedirs(dst, exist_ok=True)
+            for fn in files:
+                if fn in SKIP:
+                    continue
+                try:
+                    shutil.copy2(os.path.join(cur, fn), os.path.join(dst, fn))
+                    copied += 1
+                except Exception:
+                    pass
+        return True, "已更新到 v%s（%d 个文件），重启控制台后生效" % (info["latest"], copied)
+    except Exception as e:
+        return False, "更新失败：%s" % e
+    finally:
+        try:
+            shutil.rmtree(tmp, ignore_errors=True)
+        except Exception:
+            pass
+
+
 def load_config():
     cfg = dict(DEFAULT_CONFIG)
     if os.path.isfile(CONFIG_PATH):
@@ -1615,6 +1714,36 @@ class Handler(BaseHTTPRequestHandler):
             return self._json(services_state())
         if p == "/api/mem/scan":
             return self._json(memory_scan())
+        if p == "/api/version":
+            return self._json({"ok": True, "version": APP_VERSION,
+                               "name": APP_NAME, "repo": APP_REPO})
+        if p == "/api/update/check":
+            return self._json(update_check())
+        if p == "/api/localapi":
+            # 只返回给已鉴权的本页面（需要 X-Auth-Token）
+            if not self._authorized():
+                return self._deny()
+            base = "http://127.0.0.1:%d" % PORT
+            eps = [
+                {"method": "GET",  "path": "/api/status",   "desc": "实时指标（显存/内存/GPU/吞吐）"},
+                {"method": "GET",  "path": "/api/selfcheck","desc": "自检结果与版本信息"},
+                {"method": "GET",  "path": "/api/config",   "desc": "读取当前模型参数"},
+                {"method": "POST", "path": "/api/config",   "desc": "修改参数（body 为 JSON）"},
+                {"method": "POST", "path": "/api/load",     "desc": "加载模型到显存"},
+                {"method": "POST", "path": "/api/unload",   "desc": "卸载模型释放显存"},
+                {"method": "POST", "path": "/api/chat",     "desc": "对话/推理（body: messages）"},
+                {"method": "GET",  "path": "/api/models",   "desc": "模型列表"},
+                {"method": "GET",  "path": "/api/stats",    "desc": "用量统计"},
+                {"method": "GET",  "path": "/api/log",      "desc": "日志尾部（?n=10）"},
+            ]
+            return self._json({
+                "ok": True,
+                "base": base,
+                "token": CONSOLE_TOKEN,
+                "endpoints": eps,
+                "curl": 'curl -H "X-Auth-Token: %s" %s/api/status' % (CONSOLE_TOKEN, base),
+                "openai_compat": "http://127.0.0.1:11434/v1  （Ollama 原生 OpenAI 兼容端点）",
+            })
         if p == "/api/douyin/status":
             try:
                 import douyin as _dy
@@ -1813,6 +1942,9 @@ class Handler(BaseHTTPRequestHandler):
             with open(BOT_CONFIG_PATH, "w", encoding="utf-8") as f:
                 json.dump(cur, f, ensure_ascii=False, indent=2)
             return self._json({"ok": True, "config": cur})
+        if p == "/api/update/apply":
+            ok, msg = update_apply()
+            return self._json({"ok": ok, "msg": msg})
         if p == "/api/douyin/start":
             body = self._read_json()
             try:

@@ -2088,8 +2088,45 @@ window.addEventListener('resize', ()=>{
   g.appendChild(left); g.appendChild(right);
   pHome.appendChild(g);
 
+  // 本地 API 卡片
+  const apiCard = document.createElement('div');
+  apiCard.className = 'card';
+  apiCard.style.marginTop = '16px';
+  apiCard.innerHTML = `
+    <div class="cardhead">
+      <h2>本地 API · Local API</h2>
+      <button class="mini-btn" id="apiRefresh">刷新</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+      <div>
+        <div style="font-size:10px;color:var(--dim);font-family:var(--mono);margin-bottom:4px">接口地址</div>
+        <div style="display:flex;gap:6px;align-items:center">
+          <code id="apiBase" style="font-family:var(--mono);font-size:11.5px;color:var(--cyan);
+                background:rgba(63,201,240,.08);padding:6px 10px;border-radius:8px;flex:1">—</code>
+          <button class="mini-btn" id="apiCopyBase">复制</button>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:10px;color:var(--dim);font-family:var(--mono);margin-bottom:4px">访问令牌</div>
+        <div style="display:flex;gap:6px;align-items:center">
+          <code id="apiToken" style="font-family:var(--mono);font-size:11.5px;color:var(--muted);
+                background:rgba(10,16,28,.6);padding:6px 10px;border-radius:8px;flex:1;
+                overflow:hidden;text-overflow:ellipsis;white-space:nowrap">—</code>
+          <button class="mini-btn" id="apiShowToken">显示</button>
+          <button class="mini-btn" id="apiCopyToken">复制</button>
+        </div>
+      </div>
+    </div>
+    <div style="font-size:10px;color:var(--dim);font-family:var(--mono);margin-bottom:6px">常用接口</div>
+    <div id="apiList" style="max-height:190px;overflow:auto;margin-bottom:10px"></div>
+    <div style="font-size:10px;color:var(--dim);font-family:var(--mono);margin-bottom:4px">调用示例</div>
+    <pre id="apiCurl" style="font-family:var(--mono);font-size:10.5px;color:var(--muted);
+         background:rgba(6,10,18,.65);border:1px solid var(--line);border-radius:11px;
+         padding:10px 12px;white-space:pre-wrap;margin:0">—</pre>
+    <div class="tip" style="margin-top:8px">仅本机可访问；写接口需带 <code>X-Auth-Token</code> 请求头。</div>`;
+
   // 首页底部通栏：自检 + 功能开关 + 参数效果验证
-  [selfCard, toggleCard, testCard].filter(Boolean).forEach(n=>{
+  [selfCard, toggleCard, testCard, apiCard].filter(Boolean).forEach(n=>{
     n.style.marginTop = '16px';
     pHome.appendChild(n);
   });
@@ -2333,6 +2370,86 @@ if ($('dyStop')) $('dyStop').onclick = function(){ dyPost('/api/douyin/stop'); }
 if ($('dyClear')) $('dyClear').onclick = function(){ dyPost('/api/douyin/clear'); };
 loadDy();
 setInterval(loadDy, 8000);
+
+/* ── 本地 API 卡片 ── */
+let APIINFO = null;
+async function loadApiInfo(){
+  try{
+    const r = await (await fetch('/api/localapi')).json();
+    if(!r || !r.ok) return;
+    APIINFO = r;
+    if ($('apiBase')) $('apiBase').textContent = r.base;
+    if ($('apiToken')) $('apiToken').textContent = '••••••••••••••••••••';
+    if ($('apiCurl')) $('apiCurl').textContent = r.curl;
+    const box = $('apiList');
+    if (box){
+      box.innerHTML = (r.endpoints || []).map(e=>{
+        const color = e.method === 'GET' ? 'var(--mint)' : 'var(--amber)';
+        return '<div style="display:grid;grid-template-columns:52px 1fr;gap:8px;align-items:center;' +
+          'padding:4px 2px;border-bottom:1px solid rgba(110,155,225,.06)">' +
+          '<span style="font-family:var(--mono);font-size:10px;color:' + color + '">' + e.method + '</span>' +
+          '<span style="font-size:11px;color:var(--muted)"><code style="font-family:var(--mono);' +
+          'color:var(--ink)">' + e.path + '</code> · ' + e.desc + '</span></div>';
+      }).join('');
+    }
+  }catch(e){}
+}
+if (document.addEventListener){
+  document.addEventListener('click', function(ev){
+    const t = ev.target;
+    if (!t || !t.id) return;
+    if (t.id === 'apiRefresh') loadApiInfo();
+
+/* ── 版本与更新 ── */
+let VERINFO = null;
+async function loadVersion(){
+  try{
+    const r = await (await fetch('/api/version')).json();
+    if (r && r.ok && $('pillVersion')) $('pillVersion').textContent = 'v' + r.version;
+  }catch(e){}
+}
+async function checkUpdate(manual){
+  try{
+    const r = await (await fetch('/api/update/check')).json();
+    VERINFO = r;
+    if (!r.ok){ if(manual) toast('检查失败：' + (r.error||'')); return; }
+    if (r.has_update){
+      $('pillVersion').textContent = 'v' + r.current + ' → v' + r.latest;
+      $('pillVersion').style.color = 'var(--amber)';
+      $('pillVersion').style.borderColor = 'var(--amber)';
+      if (confirm('发现新版本 v' + r.latest + '\n\n' + (r.notes||'').slice(0,300) +
+                  '\n\n现在更新吗？（更新后需重启控制台）')){
+        toast('正在下载更新…');
+        const a = await (await fetch('/api/update/apply', {method:'POST',
+          headers:{'Content-Type':'application/json'}, body:'{}'})).json();
+        toast(a.msg || (a.ok ? '更新完成' : '更新失败'));
+        if (a.ok) setTimeout(()=>location.reload(), 1500);
+      }
+    } else {
+      $('pillVersion').textContent = 'v' + r.current;
+      if (manual) toast('已是最新版本 v' + r.current);
+    }
+  }catch(e){ if(manual) toast('检查失败'); }
+}
+if ($('pillVersion')){
+  $('pillVersion').onclick = ()=>checkUpdate(true);
+}
+loadVersion();
+setTimeout(()=>checkUpdate(false), 3000);
+
+
+    if (t.id === 'apiCopyBase' && APIINFO){ navigator.clipboard.writeText(APIINFO.base); toast('地址已复制'); }
+    if (t.id === 'apiShowToken' && APIINFO){
+      const masked = $('apiToken').textContent.startsWith('•');
+      $('apiToken').textContent = masked ? APIINFO.token : '••••••••••••••••••••';
+      t.textContent = masked ? '隐藏' : '显示';
+    }
+    if (t.id === 'apiCopyToken' && APIINFO){ navigator.clipboard.writeText(APIINFO.token); toast('令牌已复制'); }
+  });
+}
+loadApiInfo();
+
+
 
 
 setInterval(loadStats, 60000);
