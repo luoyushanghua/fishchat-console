@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""大肥鱼 · 模型参数监控台后端（零依赖，全部自动探测）"""
+"""FishChat 控制台 · 后端（零依赖，全部自动探测）"""
 import ctypes
 import json
 import os
